@@ -1,14 +1,14 @@
 BEGIN;
 
-INSERT INTO source_systems (
+INSERT INTO sistemas_origen (
     id,
-    source_system_id,
-    name,
-    domain,
-    api_key_hash,
-    contact_email,
-    webhook_callback_url,
-    is_active
+    identificador_sistema_origen,
+    nombre,
+    dominio,
+    hash_api_key,
+    correo_contacto,
+    url_webhook_respuesta,
+    activo
 ) VALUES
 (
     '11111111-1111-1111-1111-111111111111',
@@ -30,16 +30,16 @@ INSERT INTO source_systems (
     'https://cliente-demo.cl/api/krono/result-sport',
     TRUE
 )
-ON CONFLICT (source_system_id) DO NOTHING;
+ON CONFLICT (identificador_sistema_origen) DO NOTHING;
 
-INSERT INTO weight_config (
+INSERT INTO configuracion_pesos (
     id,
-    w1_attendance,
-    w2_waiting_time,
-    w3_urgency,
-    is_active,
-    effective_from,
-    created_by
+    peso_historial_asistencia,
+    peso_tiempo_espera,
+    peso_urgencia,
+    activo,
+    vigente_desde,
+    creado_por
 ) VALUES
 (
     '33333333-3333-3333-3333-333333333333',
@@ -52,20 +52,20 @@ INSERT INTO weight_config (
 )
 ON CONFLICT DO NOTHING;
 
-INSERT INTO appointments (
+INSERT INTO citas (
     id,
-    source_system_id,
-    external_appointment_id,
-    cancelled_at,
-    slot_date,
-    start_time,
-    end_time,
-    doctor_name,
-    specialty,
-    location,
-    cancelled_patient_id,
-    cancelled_patient_name,
-    status
+    sistema_origen_id,
+    identificador_cita_externa,
+    cancelada_en,
+    fecha_bloque,
+    hora_inicio,
+    hora_fin,
+    nombre_doctor,
+    especialidad,
+    ubicacion,
+    identificador_paciente_cancelado,
+    nombre_paciente_cancelado,
+    estado
 ) VALUES
 (
     '44444444-4444-4444-4444-444444444444',
@@ -80,19 +80,19 @@ INSERT INTO appointments (
     'Sala 3 - Piso 2',
     'PAT-0091',
     'Carlos Mendoza',
-    'cancelled'
+    'cancelada'
 )
-ON CONFLICT (source_system_id, external_appointment_id) DO NOTHING;
+ON CONFLICT (sistema_origen_id, identificador_cita_externa) DO NOTHING;
 
-INSERT INTO waitlist_candidates (
+INSERT INTO candidatos_lista_espera (
     id,
-    appointment_id,
-    patient_id,
-    display_name,
-    phone,
-    attendance_history,
-    waiting_days,
-    urgency_level
+    cita_id,
+    identificador_paciente,
+    nombre_visible,
+    telefono,
+    historial_asistencia,
+    dias_espera,
+    nivel_urgencia
 ) VALUES
 (
     '50000000-0000-0000-0000-000000000001',
@@ -174,6 +174,6 @@ INSERT INTO waitlist_candidates (
     90,
     4
 )
-ON CONFLICT (appointment_id, patient_id) DO NOTHING;
+ON CONFLICT (cita_id, identificador_paciente) DO NOTHING;
 
 COMMIT;

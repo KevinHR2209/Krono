@@ -1,5 +1,5 @@
 const { getClient } = require('../config/database');
-const { sendReturnEventWithRetry } = require('./returnEvent');
+// const { sendReturnEventWithRetry } = require('./returnEvent');
 
 async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
   const client = await getClient();
@@ -7,26 +7,24 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
   try {
     await client.query('BEGIN');
 
-    const auctionResult = await client.query(
-      `
-        SELECT
-          s.id,
-          s.id_cita,
-          s.id_sistema_origen,
-          s.id_correlacion,
-          s.estado,
-          s.url_retorno,
-          s.expira_en,
-          s.created_at,
-          c.id AS cita_id,
-          c.id_externo AS appointment_external_id
-        FROM subastas s
-        INNER JOIN citas c ON c.id = s.id_cita
-        WHERE s.id = $1
-        FOR UPDATE
-      `,
-      [auctionId]
-    );
+  const auctionResult = await client.query(
+    `
+      SELECT
+        s.id,
+        s.cita_id,
+        s.id_correlacion,
+        s.id_transaccion,
+        s.estado,
+        s.expira_en,
+        s.creado_en,
+        c.id AS cita_id_real
+      FROM subastas s
+      INNER JOIN citas c ON c.id = s.cita_id
+      WHERE s.id = $1
+      FOR UPDATE
+    `,
+    [auctionId]
+  );
 
     if (auctionResult.rowCount === 0) {
       throw new Error('Subasta no encontrada');
@@ -38,22 +36,20 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
       throw new Error(`La subasta ya no está activa. Estado actual: ${auction.estado}`);
     }
 
-    const participantResult = await client.query(
-      `
-        SELECT
-          ps.id,
-          ps.id_candidato_espera,
-          ce.id_paciente,
-          ce.nombre_visible
-        FROM participantes_subasta ps
-        INNER JOIN candidatos_espera ce
-          ON ce.id = ps.id_candidato_espera
-        WHERE ps.id_subasta = $1
-          AND ce.id_paciente = $2
-        FOR UPDATE
-      `,
-      [auctionId, patientId]
-    );
+  const participantResult = await client.query(
+    `
+      SELECT
+        ps.id,
+        ps.candidato_lista_espera_id,
+        ps.identificador_paciente,
+        ps.nombre_visible
+      FROM participantes_subasta ps
+      WHERE ps.subasta_id = $1
+        AND ps.identificador_paciente = $2
+      FOR UPDATE
+    `,
+    [auctionId, patientId]
+  );
 
     if (participantResult.rowCount === 0) {
       throw new Error('El paciente no participa en esta subasta');
@@ -67,9 +63,9 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
           id,
           id_transaccion,
           id_correlacion,
-          created_at
+          creado_en
         FROM transacciones
-        WHERE id_subasta = $1
+        WHERE subasta_id = $1
         ORDER BY id ASC
         LIMIT 1
         FOR UPDATE
@@ -83,12 +79,12 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
 
     const transaction = transactionResult.rows[0];
     const reassignedAt = new Date();
-    const elapsedMs = reassignedAt.getTime() - new Date(transaction.created_at).getTime();
+    const elapsedMs = reassignedAt.getTime() - new Date(transaction.creado_en).getTime();
 
     const responsePayload = {
       transaction_id: transaction.id_transaccion,
       correlation_id: transaction.id_correlacion,
-      appointment_id: auction.appointment_external_id || appointmentId,
+      appointment_id: appointmentId || auction.cita_id_real,
       status: 'reassigned',
       winner: {
         patient_id: patientId,
@@ -99,68 +95,83 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
     };
 
     await client.query(
-      `
-        UPDATE subastas
-        SET
-          estado = 'reasignada',
-          id_ganador_candidato = $2,
-          confirmado_en = $3,
-          updated_at = NOW()
-        WHERE id = $1
-      `,
-      [auctionId, participant.id_candidato_espera, reassignedAt]
-    );
+  `
+    UPDATE subastas
+    SET
+      estado = 'ganada',
+      participante_ganador_id = $2,
+      identificador_paciente_ganador = $3,
+      nombre_visible_ganador = $4,
+      resuelta_en = $5,
+      tiempo_transcurrido_ms = $6,
+      actualizado_en = NOW()
+    WHERE id = $1
+  `,
+  [
+    auctionId,
+    participant.id,
+    patientId,
+    participant.nombre_visible,
+    reassignedAt,
+    elapsedMs
+  ]
+);
 
     await client.query(
       `
         UPDATE participantes_subasta
         SET
-          estado_respuesta = CASE
-            WHEN id = $2 THEN 'ganador'
-            ELSE 'perdedor'
-          END,
+          estado = (
+            CASE
+              WHEN id = $2 THEN 'ganador'
+              ELSE 'perdedor'
+            END
+          )::estado_participante_enum,
           respondido_en = CASE
             WHEN id = $2 THEN $3
             ELSE respondido_en
           END,
-          updated_at = NOW()
-        WHERE id_subasta = $1
+          actualizado_en = NOW()
+        WHERE subasta_id = $1
       `,
       [auctionId, participant.id, reassignedAt]
     );
 
-    await client.query(
-      `
-        UPDATE transacciones
-        SET
-          estado = 'reasignado',
-          payload_respuesta = $2::jsonb,
-          reasignado_en = $3,
-          tiempo_transcurrido_ms = $4,
-          updated_at = NOW()
-        WHERE id = $1
-      `,
-      [
-        transaction.id,
-        JSON.stringify(responsePayload),
-        reassignedAt,
-        elapsedMs
-      ]
-    );
+await client.query(
+  `
+    UPDATE transacciones
+    SET
+      estado = 'reasignada',
+      participante_ganador_id = $2,
+      identificador_paciente_ganador = $3,
+      nombre_visible_ganador = $4,
+      payload_respuesta = $5::jsonb,
+      reasignada_en = $6,
+      tiempo_transcurrido_ms = $7,
+      ultimo_intento_retorno_en = NOW()
+    WHERE id = $1
+  `,
+  [
+    transaction.id,
+    participant.id,
+    patientId,
+    participant.nombre_visible,
+    JSON.stringify(responsePayload),
+    reassignedAt,
+    elapsedMs
+  ]
+);
 
     await client.query('COMMIT');
-
-    const returnEventResult = await sendReturnEventWithRetry({
-      url: auction.url_retorno,
-      payload: responsePayload,
-      referenceId: transaction.id_transaccion
-    });
 
     return {
       success: true,
       statusCode: 200,
       responsePayload,
-      returnEvent: returnEventResult
+      returnEvent: {
+        skipped: true,
+        reason: 'url_retorno no disponible en el esquema actual'
+      }
     };
   } catch (error) {
     await client.query('ROLLBACK');

@@ -217,8 +217,8 @@ async function createAuction({ payload, correlationId }) {
             notificado_en
           )
           VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-            CASE WHEN $14 = 'notificado' THEN NOW() ELSE NULL END
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::estado_participante_enum,
+              CASE WHEN $14::estado_participante_enum = 'notificado'::estado_participante_enum THEN NOW() ELSE NULL END
           )
         `,
         [

@@ -12,7 +12,7 @@ router.get('/confirm/:token', async (req, res) => {
   try {
     const decoded = verifyConfirmationToken(token);
 
-    const auctionId = Number(decoded.auction_id);
+    const auctionId = decoded.auction_id;
     const patientId = decoded.patient_id;
     const appointmentId = decoded.appointment_id;
 
@@ -49,7 +49,7 @@ router.get('/confirm/:token', async (req, res) => {
       await query(
         `
           UPDATE subastas
-          SET estado = 'expirada', updated_at = NOW()
+          SET estado = 'expirada', actualizado_en = NOW()
           WHERE id = $1
         `,
         [auctionId]
@@ -58,8 +58,8 @@ router.get('/confirm/:token', async (req, res) => {
       await query(
         `
           UPDATE transacciones
-          SET estado = 'expirado', updated_at = NOW()
-          WHERE id_subasta = $1
+          SET estado = 'expirado', actualizado_en = NOW()
+          WHERE subasta_id = $1
         `,
         [auctionId]
       );

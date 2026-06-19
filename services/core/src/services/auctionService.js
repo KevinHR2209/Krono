@@ -140,7 +140,7 @@ async function createAuction({ payload, correlationId }) {
           $1,
           $2,
           $3,
-          'pendiente',
+          'activa',
           $4,
           $5,
           NOW(),

@@ -24,7 +24,7 @@ export function transformarDatosClinicaAKrono(datosClinica) {
 
     return {
         event_type: 'appointment_cancelled',
-        source_system_id: 'CLINICA-DEMO-WEB',
+        source_system_id: 'CLINICA-PROVIDENCIA-01',
         cancellation: {
             appointment_id: datosClinica.id_reserva,
             cancelled_at: new Date().toISOString(),

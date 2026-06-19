@@ -4,7 +4,7 @@ import { transformarDatosClinicaAKrono } from '../utils/kronoAdapter';
 
 const citasDelDia = [
     {
-        id_reserva: "RES-9988",
+        id_reserva: "RES-9981",
         fecha_hora_bloque: "2026-05-20T09:00:00",
         rut_medico: "12.345.678-9",
         nombre_medico: "Dra. Valentina Riquelme",
@@ -18,7 +18,7 @@ const citasDelDia = [
         ]
     },
     {
-        id_reserva: "RES-1024",
+        id_reserva: "RES-1025",
         fecha_hora_bloque: "2026-05-20T11:30:00",
         rut_medico: "10.987.654-3",
         nombre_medico: "Dr. Roberto Neira",

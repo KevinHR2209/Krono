@@ -4,6 +4,7 @@ const waitlistCandidateSchema = z.object({
   patient_id: z.string().min(1),
   display_name: z.string().min(1),
   phone: z.string().regex(/^\+569\d{8}$/),
+  email: z.string().email().optional(),
   attendance_history: z.number().min(0).max(1),
   waiting_days: z.number().int().min(0),
   urgency_level: z.number().int().min(1).max(4)

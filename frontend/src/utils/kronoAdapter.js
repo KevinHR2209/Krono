@@ -17,6 +17,7 @@ export function transformarDatosClinicaAKrono(datosClinica) {
         patient_id: paciente.rut,
         display_name: paciente.nombre,
         phone: paciente.telefono,
+        email:paciente.email,
         attendance_history: paciente.porcentaje_asistencia / 100,
         waiting_days: paciente.dias_en_espera,
         urgency_level: paciente.nivel_gravedad

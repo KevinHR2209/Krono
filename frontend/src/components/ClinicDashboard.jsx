@@ -4,7 +4,7 @@ import { transformarDatosClinicaAKrono } from '../utils/kronoAdapter';
 
 const citasDelDia = [
     {
-        id_reserva: "RES-9981",
+        id_reserva: "RES-1003",
         fecha_hora_bloque: "2026-05-20T09:00:00",
         rut_medico: "12.345.678-9",
         nombre_medico: "Dra. Valentina Riquelme",
@@ -13,12 +13,12 @@ const citasDelDia = [
         rut_paciente_cancela: "19.876.543-2",
         nombre_paciente_cancela: "Juan Pérez",
         pacientes_espera: [
-            { rut: "15.111.222-3", nombre: "Ana Soto", telefono: "+56911111111", porcentaje_asistencia: 95, dias_en_espera: 12, nivel_gravedad: 4 },
-            { rut: "16.222.333-4", nombre: "Luis Silva", telefono: "+56922222222", porcentaje_asistencia: 80, dias_en_espera: 20, nivel_gravedad: 3 }
+            { rut: "15.111.222-3", nombre: "Ana Soto", telefono: "+56911111111", email: "christianperezvera0@gmail.com", porcentaje_asistencia: 95, dias_en_espera: 12, nivel_gravedad: 4 },
+            { rut: "16.222.333-4", nombre: "Luis Silva", telefono: "+56922222222", email: "barberiakrono@gmail.com", porcentaje_asistencia: 80, dias_en_espera: 20, nivel_gravedad: 3 }
         ]
     },
     {
-        id_reserva: "RES-1025",
+        id_reserva: "RES-0003",
         fecha_hora_bloque: "2026-05-20T11:30:00",
         rut_medico: "10.987.654-3",
         nombre_medico: "Dr. Roberto Neira",
@@ -27,8 +27,8 @@ const citasDelDia = [
         rut_paciente_cancela: "18.555.444-1",
         nombre_paciente_cancela: "María González",
         pacientes_espera: [
-            { rut: "17.444.555-6", nombre: "Carlos Pinto", telefono: "+56933333333", porcentaje_asistencia: 100, dias_en_espera: 5, nivel_gravedad: 2 },
-            { rut: "14.333.222-1", nombre: "Sofía Castro", telefono: "+56944444444", porcentaje_asistencia: 60, dias_en_espera: 30, nivel_gravedad: 4 }
+            { rut: "17.444.555-6", nombre: "Carlos Pinto", telefono: "+56933333333", email: "Khrvae@gmail.com", porcentaje_asistencia: 100, dias_en_espera: 5, nivel_gravedad: 2 },
+            { rut: "14.333.222-1", nombre: "Sofía Castro", telefono: "+56944444444", email: "diegojavier.lf@gmail.com", porcentaje_asistencia: 60, dias_en_espera: 30, nivel_gravedad: 4 }
         ]
     }
 ];

@@ -1,5 +1,5 @@
+// services/flash-fill/src/services/auctionResolver.js
 const { getClient } = require('../config/database');
-// const { sendReturnEventWithRetry } = require('./returnEvent');
 
 async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
   const client = await getClient();
@@ -7,9 +7,8 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
   try {
     await client.query('BEGIN');
 
-  const auctionResult = await client.query(
-    `
-      SELECT
+    const auctionResult = await client.query(
+      `SELECT
         s.id,
         s.cita_id,
         s.id_correlacion,
@@ -20,11 +19,9 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
         c.id AS cita_id_real
       FROM subastas s
       INNER JOIN citas c ON c.id = s.cita_id
-      WHERE s.id = $1
-      FOR UPDATE
-    `,
-    [auctionId]
-  );
+      WHERE s.id = $1`,
+      [auctionId]
+    );
 
     if (auctionResult.rowCount === 0) {
       throw new Error('Subasta no encontrada');
@@ -36,20 +33,17 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
       throw new Error(`La subasta ya no está activa. Estado actual: ${auction.estado}`);
     }
 
-  const participantResult = await client.query(
-    `
-      SELECT
+    const participantResult = await client.query(
+      `SELECT
         ps.id,
         ps.candidato_lista_espera_id,
         ps.identificador_paciente,
         ps.nombre_visible
       FROM participantes_subasta ps
       WHERE ps.subasta_id = $1
-        AND ps.identificador_paciente = $2
-      FOR UPDATE
-    `,
-    [auctionId, patientId]
-  );
+        AND ps.identificador_paciente = $2`,
+      [auctionId, patientId]
+    );
 
     if (participantResult.rowCount === 0) {
       throw new Error('El paciente no participa en esta subasta');
@@ -58,18 +52,15 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
     const participant = participantResult.rows[0];
 
     const transactionResult = await client.query(
-      `
-        SELECT
-          id,
-          id_transaccion,
-          id_correlacion,
-          creado_en
-        FROM transacciones
-        WHERE subasta_id = $1
-        ORDER BY id ASC
-        LIMIT 1
-        FOR UPDATE
-      `,
+      `SELECT
+        id,
+        id_transaccion,
+        id_correlacion,
+        creado_en
+      FROM transacciones
+      WHERE subasta_id = $1
+      ORDER BY id ASC
+      LIMIT 1`,
       [auctionId]
     );
 
@@ -95,72 +86,59 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
     };
 
     await client.query(
-  `
-    UPDATE subastas
-    SET
-      estado = 'ganada',
-      participante_ganador_id = $2,
-      identificador_paciente_ganador = $3,
-      nombre_visible_ganador = $4,
-      resuelta_en = $5,
-      tiempo_transcurrido_ms = $6,
-      actualizado_en = NOW()
-    WHERE id = $1
-  `,
-  [
-    auctionId,
-    participant.id,
-    patientId,
-    participant.nombre_visible,
-    reassignedAt,
-    elapsedMs
-  ]
-);
+      `UPDATE subastas
+      SET
+        estado = 'ganada',
+        participante_ganador_id = $2,
+        identificador_paciente_ganador = $3,
+        nombre_visible_ganador = $4,
+        resuelta_en = $5,
+        tiempo_transcurrido_ms = $6,
+        actualizado_en = NOW()
+      WHERE id = $1`,
+      [auctionId, participant.id, patientId, participant.nombre_visible, reassignedAt, elapsedMs]
+    );
 
     await client.query(
-      `
-        UPDATE participantes_subasta
-        SET
-          estado = (
-            CASE
-              WHEN id = $2 THEN 'ganador'
-              ELSE 'perdedor'
-            END
-          )::estado_participante_enum,
-          respondido_en = CASE
-            WHEN id = $2 THEN $3
-            ELSE respondido_en
-          END,
-          actualizado_en = NOW()
-        WHERE subasta_id = $1
-      `,
+      `UPDATE participantes_subasta
+      SET
+        estado = (
+          CASE
+            WHEN id = $2 THEN 'ganador'
+            ELSE 'perdedor'
+          END
+        )::estado_participante_enum,
+        respondido_en = CASE
+          WHEN id = $2 THEN $3
+          ELSE respondido_en
+        END,
+        actualizado_en = NOW()
+      WHERE subasta_id = $1`,
       [auctionId, participant.id, reassignedAt]
     );
 
-await client.query(
-  `
-    UPDATE transacciones
-    SET
-      estado = 'reasignada',
-      participante_ganador_id = $2,
-      identificador_paciente_ganador = $3,
-      nombre_visible_ganador = $4,
-      payload_respuesta = $5::jsonb,
-      reasignada_en = $6,
-      tiempo_transcurrido_ms = $7,
-      ultimo_intento_retorno_en = NOW()
-    WHERE id = $1
-  `,
-  [
-    transaction.id,
-    participant.id,
-    patientId,
-    participant.nombre_visible,
-    JSON.stringify(responsePayload),
-    reassignedAt,
-    elapsedMs
-  ]
-);
+    await client.query(
+      `UPDATE transacciones
+      SET
+        estado = 'reasignada',
+        participante_ganador_id = $2,
+        identificador_paciente_ganador = $3,
+        nombre_visible_ganador = $4,
+        payload_respuesta = $5::jsonb,
+        reasignada_en = $6,
+        tiempo_transcurrido_ms = $7,
+        ultimo_intento_retorno_en = NOW()
+      WHERE id = $1`,
+      [
+        transaction.id,
+        participant.id,
+        patientId,
+        participant.nombre_visible,
+        JSON.stringify(responsePayload),
+        reassignedAt,
+        elapsedMs
+      ]
+    );
 
     await client.query('COMMIT');
 
@@ -181,6 +159,4 @@ await client.query(
   }
 }
 
-module.exports = {
-  resolveAuctionWinner
-};
+module.exports = { resolveAuctionWinner };

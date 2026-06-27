@@ -6,8 +6,8 @@ const waitlistCandidateSchema = z.object({
   phone: z.string().regex(/^\+569\d{8}$/),
   email: z.string().email().optional(),
   attendance_history: z.number().min(0).max(1),
-  waiting_days: z.number().int().min(0),
-  urgency_level: z.number().int().min(1).max(4)
+  latitud: z.number().nullable().optional(),
+  longitud: z.number().nullable().optional()
 });
 
 const webhookSchema = z.object({
@@ -22,7 +22,9 @@ const webhookSchema = z.object({
       end_time: z.string().regex(/^\d{2}:\d{2}$/),
       doctor_name: z.string().min(1),
       specialty: z.string().min(1),
-      location: z.string().min(1)
+      location: z.string().min(1),
+      latitud: z.number().nullable().optional(),
+      longitud: z.number().nullable().optional()
     }),
     cancelled_patient: z.object({
       patient_id: z.string().min(1),

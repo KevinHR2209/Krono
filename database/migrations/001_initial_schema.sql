@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'estado_cita_enum') THEN
-        CREATE TYPE estado_cita_enum AS ENUM (
+CREATE TYPE estado_cita_enum AS ENUM (
             'cancelada',
             'subasta_pendiente',
             'notificada',
@@ -13,20 +13,18 @@ BEGIN
             'expirada',
             'fallida'
         );
-    END IF;
-
+END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'estado_subasta_enum') THEN
-        CREATE TYPE estado_subasta_enum AS ENUM (
+CREATE TYPE estado_subasta_enum AS ENUM (
             'pendiente',
             'activa',
             'ganada',
             'expirada',
             'fallida'
         );
-    END IF;
-
+END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'estado_participante_enum') THEN
-        CREATE TYPE estado_participante_enum AS ENUM (
+CREATE TYPE estado_participante_enum AS ENUM (
             'rankeado',
             'notificado',
             'entregado',
@@ -36,28 +34,26 @@ BEGIN
             'expirado',
             'fallido'
         );
-    END IF;
-
+END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'estado_transaccion_enum') THEN
-        CREATE TYPE estado_transaccion_enum AS ENUM (
+CREATE TYPE estado_transaccion_enum AS ENUM (
             'reasignada',
             'expirada',
             'fallida'
         );
-    END IF;
-
+END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'estado_cola_muerta_enum') THEN
-        CREATE TYPE estado_cola_muerta_enum AS ENUM (
+CREATE TYPE estado_cola_muerta_enum AS ENUM (
             'pendiente',
             'reintentando',
             'descartado',
             'resuelto'
         );
-    END IF;
+END IF;
 END $$;
 
 CREATE TABLE IF NOT EXISTS sistemas_origen (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                               id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     identificador_sistema_origen VARCHAR(100) NOT NULL UNIQUE,
     nombre VARCHAR(150) NOT NULL,
     dominio VARCHAR(120),
@@ -67,10 +63,10 @@ CREATE TABLE IF NOT EXISTS sistemas_origen (
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+    );
 
 CREATE TABLE IF NOT EXISTS citas (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sistema_origen_id UUID NOT NULL REFERENCES sistemas_origen(id) ON DELETE RESTRICT,
     identificador_cita_externa VARCHAR(100) NOT NULL,
     cancelada_en TIMESTAMPTZ NOT NULL,
@@ -87,10 +83,10 @@ CREATE TABLE IF NOT EXISTS citas (
     actualizado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_citas_sistema_cita_externa UNIQUE (sistema_origen_id, identificador_cita_externa),
     CONSTRAINT chk_citas_rango_horario CHECK (hora_fin > hora_inicio)
-);
+    );
 
 CREATE TABLE IF NOT EXISTS subastas (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cita_id UUID NOT NULL UNIQUE REFERENCES citas(id) ON DELETE CASCADE,
     id_correlacion UUID NOT NULL UNIQUE,
     id_transaccion UUID NOT NULL UNIQUE,
@@ -110,38 +106,36 @@ CREATE TABLE IF NOT EXISTS subastas (
     CONSTRAINT chk_subastas_top_candidatos CHECK (cantidad_top_candidatos BETWEEN 1 AND 5),
     CONSTRAINT chk_subastas_tiempo_transcurrido CHECK (tiempo_transcurrido_ms IS NULL OR tiempo_transcurrido_ms >= 0),
     CONSTRAINT chk_subastas_expiracion CHECK (expira_en > iniciada_en)
-);
+    );
 
 CREATE TABLE IF NOT EXISTS candidatos_lista_espera (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                                       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cita_id UUID NOT NULL REFERENCES citas(id) ON DELETE CASCADE,
     identificador_paciente VARCHAR(100) NOT NULL,
     nombre_visible VARCHAR(150) NOT NULL,
     telefono VARCHAR(20) NOT NULL,
     historial_asistencia NUMERIC(4,3) NOT NULL,
-    dias_espera INTEGER NOT NULL,
-    nivel_urgencia INTEGER NOT NULL,
+    latitud NUMERIC(10,7),
+    longitud NUMERIC(10,7),
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_candidatos_lista_espera_cita_paciente UNIQUE (cita_id, identificador_paciente),
     CONSTRAINT chk_candidatos_lista_espera_telefono CHECK (telefono ~ '^\+569[0-9]{8}$'),
-    CONSTRAINT chk_candidatos_lista_espera_historial CHECK (historial_asistencia >= 0.0 AND historial_asistencia <= 1.0),
-    CONSTRAINT chk_candidatos_lista_espera_dias CHECK (dias_espera >= 0),
-    CONSTRAINT chk_candidatos_lista_espera_urgencia CHECK (nivel_urgencia BETWEEN 1 AND 4)
-);
+    CONSTRAINT chk_candidatos_lista_espera_historial CHECK (historial_asistencia >= 0.0 AND historial_asistencia <= 1.0)
+    );
 
 CREATE TABLE IF NOT EXISTS participantes_subasta (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     subasta_id UUID NOT NULL REFERENCES subastas(id) ON DELETE CASCADE,
     candidato_lista_espera_id UUID NOT NULL REFERENCES candidatos_lista_espera(id) ON DELETE CASCADE,
     identificador_paciente VARCHAR(100) NOT NULL,
     nombre_visible VARCHAR(150) NOT NULL,
     telefono VARCHAR(20) NOT NULL,
     historial_asistencia NUMERIC(4,3) NOT NULL,
-    dias_espera INTEGER NOT NULL,
-    nivel_urgencia INTEGER NOT NULL,
+    latitud NUMERIC(10,7),
+    longitud NUMERIC(10,7),
+    distancia_km NUMERIC(8,2),
     historial_asistencia_normalizado NUMERIC(6,5) NOT NULL,
-    dias_espera_normalizado NUMERIC(6,5) NOT NULL,
-    nivel_urgencia_normalizado NUMERIC(6,5) NOT NULL,
+    distancia_normalizada NUMERIC(6,5) NOT NULL,
     puntaje_prioridad NUMERIC(8,5) NOT NULL,
     posicion_ranking INTEGER NOT NULL,
     jti_token_notificacion UUID,
@@ -154,17 +148,14 @@ CREATE TABLE IF NOT EXISTS participantes_subasta (
     CONSTRAINT uq_participantes_subasta_ranking UNIQUE (subasta_id, posicion_ranking),
     CONSTRAINT chk_participantes_subasta_telefono CHECK (telefono ~ '^\+569[0-9]{8}$'),
     CONSTRAINT chk_participantes_subasta_historial CHECK (historial_asistencia >= 0.0 AND historial_asistencia <= 1.0),
-    CONSTRAINT chk_participantes_subasta_dias CHECK (dias_espera >= 0),
-    CONSTRAINT chk_participantes_subasta_urgencia CHECK (nivel_urgencia BETWEEN 1 AND 4),
     CONSTRAINT chk_participantes_subasta_posicion CHECK (posicion_ranking > 0),
     CONSTRAINT chk_participantes_subasta_puntaje CHECK (puntaje_prioridad >= 0.0),
     CONSTRAINT chk_participantes_subasta_historial_normalizado CHECK (historial_asistencia_normalizado >= 0.0 AND historial_asistencia_normalizado <= 1.0),
-    CONSTRAINT chk_participantes_subasta_dias_normalizado CHECK (dias_espera_normalizado >= 0.0 AND dias_espera_normalizado <= 1.0),
-    CONSTRAINT chk_participantes_subasta_urgencia_normalizado CHECK (nivel_urgencia_normalizado >= 0.0 AND nivel_urgencia_normalizado <= 1.0)
-);
+    CONSTRAINT chk_participantes_subasta_distancia_normalizada CHECK (distancia_normalizada >= 0.0 AND distancia_normalizada <= 1.0)
+    );
 
 CREATE TABLE IF NOT EXISTS transacciones (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     id_transaccion UUID NOT NULL UNIQUE,
     id_correlacion UUID NOT NULL UNIQUE,
     subasta_id UUID NOT NULL UNIQUE REFERENCES subastas(id) ON DELETE CASCADE,
@@ -182,25 +173,23 @@ CREATE TABLE IF NOT EXISTS transacciones (
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT chk_transacciones_tiempo CHECK (tiempo_transcurrido_ms >= 0),
     CONSTRAINT chk_transacciones_intentos CHECK (intentos_retorno >= 0)
-);
+    );
 
 CREATE TABLE IF NOT EXISTS configuracion_pesos (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                                   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     peso_historial_asistencia NUMERIC(4,3) NOT NULL,
-    peso_tiempo_espera NUMERIC(4,3) NOT NULL,
-    peso_urgencia NUMERIC(4,3) NOT NULL,
+    peso_distancia NUMERIC(4,3) NOT NULL,
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     vigente_desde TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     creado_por VARCHAR(100) NOT NULL DEFAULT 'system',
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT chk_configuracion_pesos_historial CHECK (peso_historial_asistencia >= 0 AND peso_historial_asistencia <= 1),
-    CONSTRAINT chk_configuracion_pesos_espera CHECK (peso_tiempo_espera >= 0 AND peso_tiempo_espera <= 1),
-    CONSTRAINT chk_configuracion_pesos_urgencia CHECK (peso_urgencia >= 0 AND peso_urgencia <= 1),
-    CONSTRAINT chk_configuracion_pesos_suma CHECK ((peso_historial_asistencia + peso_tiempo_espera + peso_urgencia) BETWEEN 0.999 AND 1.001)
-);
+    CONSTRAINT chk_configuracion_pesos_distancia CHECK (peso_distancia >= 0 AND peso_distancia <= 1),
+    CONSTRAINT chk_configuracion_pesos_suma CHECK ((peso_historial_asistencia + peso_distancia) BETWEEN 0.999 AND 1.001)
+    );
 
 CREATE TABLE IF NOT EXISTS cola_letras_muertas (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                                   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     subasta_id UUID REFERENCES subastas(id) ON DELETE SET NULL,
     id_transaccion UUID,
     id_correlacion UUID,
@@ -215,106 +204,53 @@ CREATE TABLE IF NOT EXISTS cola_letras_muertas (
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     resuelto_en TIMESTAMPTZ,
     CONSTRAINT chk_cola_letras_muertas_intentos CHECK (intentos >= 0)
-);
+    );
 
 ALTER TABLE subastas
     ADD CONSTRAINT fk_subastas_participante_ganador
-    FOREIGN KEY (participante_ganador_id)
-    REFERENCES participantes_subasta(id)
-    ON DELETE SET NULL
-    DEFERRABLE INITIALLY DEFERRED;
+        FOREIGN KEY (participante_ganador_id)
+            REFERENCES participantes_subasta(id)
+            ON DELETE SET NULL
+            DEFERRABLE INITIALLY DEFERRED;
 
-CREATE INDEX IF NOT EXISTS idx_sistemas_origen_activo
-    ON sistemas_origen (activo);
-
-CREATE INDEX IF NOT EXISTS idx_citas_sistema_origen
-    ON citas (sistema_origen_id);
-
-CREATE INDEX IF NOT EXISTS idx_citas_estado
-    ON citas (estado);
-
-CREATE INDEX IF NOT EXISTS idx_citas_fecha_bloque
-    ON citas (fecha_bloque);
-
-CREATE INDEX IF NOT EXISTS idx_subastas_estado
-    ON subastas (estado);
-
-CREATE INDEX IF NOT EXISTS idx_subastas_id_correlacion
-    ON subastas (id_correlacion);
-
-CREATE INDEX IF NOT EXISTS idx_subastas_id_transaccion
-    ON subastas (id_transaccion);
-
-CREATE INDEX IF NOT EXISTS idx_subastas_expira_en
-    ON subastas (expira_en);
-
-CREATE INDEX IF NOT EXISTS idx_candidatos_lista_espera_cita
-    ON candidatos_lista_espera (cita_id);
-
-CREATE INDEX IF NOT EXISTS idx_candidatos_lista_espera_dias
-    ON candidatos_lista_espera (dias_espera DESC);
-
-CREATE INDEX IF NOT EXISTS idx_participantes_subasta_subasta
-    ON participantes_subasta (subasta_id);
-
-CREATE INDEX IF NOT EXISTS idx_participantes_subasta_estado
-    ON participantes_subasta (estado);
-
-CREATE INDEX IF NOT EXISTS idx_participantes_subasta_puntaje
-    ON participantes_subasta (subasta_id, puntaje_prioridad DESC, posicion_ranking ASC);
-
-CREATE INDEX IF NOT EXISTS idx_transacciones_estado
-    ON transacciones (estado);
-
-CREATE INDEX IF NOT EXISTS idx_transacciones_subasta
-    ON transacciones (subasta_id);
-
-CREATE INDEX IF NOT EXISTS idx_transacciones_cita
-    ON transacciones (cita_id);
-
-CREATE INDEX IF NOT EXISTS idx_configuracion_pesos_activo
-    ON configuracion_pesos (activo, vigente_desde DESC);
-
-CREATE UNIQUE INDEX IF NOT EXISTS uq_configuracion_pesos_unico_activo
-    ON configuracion_pesos (activo)
-    WHERE activo = TRUE;
-
-CREATE INDEX IF NOT EXISTS idx_cola_letras_muertas_estado
-    ON cola_letras_muertas (estado, creado_en DESC);
-
-CREATE INDEX IF NOT EXISTS idx_cola_letras_muertas_id_correlacion
-    ON cola_letras_muertas (id_correlacion);
+CREATE INDEX IF NOT EXISTS idx_sistemas_origen_activo ON sistemas_origen (activo);
+CREATE INDEX IF NOT EXISTS idx_citas_sistema_origen ON citas (sistema_origen_id);
+CREATE INDEX IF NOT EXISTS idx_citas_estado ON citas (estado);
+CREATE INDEX IF NOT EXISTS idx_citas_fecha_bloque ON citas (fecha_bloque);
+CREATE INDEX IF NOT EXISTS idx_subastas_estado ON subastas (estado);
+CREATE INDEX IF NOT EXISTS idx_subastas_id_correlacion ON subastas (id_correlacion);
+CREATE INDEX IF NOT EXISTS idx_subastas_id_transaccion ON subastas (id_transaccion);
+CREATE INDEX IF NOT EXISTS idx_subastas_expira_en ON subastas (expira_en);
+CREATE INDEX IF NOT EXISTS idx_candidatos_lista_espera_cita ON candidatos_lista_espera (cita_id);
+CREATE INDEX IF NOT EXISTS idx_participantes_subasta_subasta ON participantes_subasta (subasta_id);
+CREATE INDEX IF NOT EXISTS idx_participantes_subasta_estado ON participantes_subasta (estado);
+CREATE INDEX IF NOT EXISTS idx_participantes_subasta_puntaje ON participantes_subasta (subasta_id, puntaje_prioridad DESC, posicion_ranking ASC);
+CREATE INDEX IF NOT EXISTS idx_transacciones_estado ON transacciones (estado);
+CREATE INDEX IF NOT EXISTS idx_transacciones_subasta ON transacciones (subasta_id);
+CREATE INDEX IF NOT EXISTS idx_transacciones_cita ON transacciones (cita_id);
+CREATE INDEX IF NOT EXISTS idx_configuracion_pesos_activo ON configuracion_pesos (activo, vigente_desde DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_configuracion_pesos_unico_activo ON configuracion_pesos (activo) WHERE activo = TRUE;
+CREATE INDEX IF NOT EXISTS idx_cola_letras_muertas_estado ON cola_letras_muertas (estado, creado_en DESC);
+CREATE INDEX IF NOT EXISTS idx_cola_letras_muertas_id_correlacion ON cola_letras_muertas (id_correlacion);
 
 CREATE OR REPLACE FUNCTION establecer_actualizado_en()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.actualizado_en = NOW();
-    RETURN NEW;
+RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_sistemas_origen_actualizado_en ON sistemas_origen;
-CREATE TRIGGER trg_sistemas_origen_actualizado_en
-BEFORE UPDATE ON sistemas_origen
-FOR EACH ROW
-EXECUTE FUNCTION establecer_actualizado_en();
+CREATE TRIGGER trg_sistemas_origen_actualizado_en BEFORE UPDATE ON sistemas_origen FOR EACH ROW EXECUTE FUNCTION establecer_actualizado_en();
 
 DROP TRIGGER IF EXISTS trg_citas_actualizado_en ON citas;
-CREATE TRIGGER trg_citas_actualizado_en
-BEFORE UPDATE ON citas
-FOR EACH ROW
-EXECUTE FUNCTION establecer_actualizado_en();
+CREATE TRIGGER trg_citas_actualizado_en BEFORE UPDATE ON citas FOR EACH ROW EXECUTE FUNCTION establecer_actualizado_en();
 
 DROP TRIGGER IF EXISTS trg_subastas_actualizado_en ON subastas;
-CREATE TRIGGER trg_subastas_actualizado_en
-BEFORE UPDATE ON subastas
-FOR EACH ROW
-EXECUTE FUNCTION establecer_actualizado_en();
+CREATE TRIGGER trg_subastas_actualizado_en BEFORE UPDATE ON subastas FOR EACH ROW EXECUTE FUNCTION establecer_actualizado_en();
 
 DROP TRIGGER IF EXISTS trg_participantes_subasta_actualizado_en ON participantes_subasta;
-CREATE TRIGGER trg_participantes_subasta_actualizado_en
-BEFORE UPDATE ON participantes_subasta
-FOR EACH ROW
-EXECUTE FUNCTION establecer_actualizado_en();
+CREATE TRIGGER trg_participantes_subasta_actualizado_en BEFORE UPDATE ON participantes_subasta FOR EACH ROW EXECUTE FUNCTION establecer_actualizado_en();
 
 COMMIT;

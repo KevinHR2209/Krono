@@ -6,7 +6,7 @@ export default function ConfirmationView() {
   const [token, setToken] = useState('');
 
   // Al cargar la página, extraemos el token JWT de la URL
-  // Ejemplo esperado: http://localhost:5173/confirmar?token=eyJhbGciOi...
+  // Ejemplo esperado: http://localhost:5174/confirmar?token=eyJhbGciOi...
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tokenParam = urlParams.get('token');

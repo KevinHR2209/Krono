@@ -7,10 +7,10 @@ services:
       POSTGRES_PASSWORD: krono_password
       POSTGRES_DB: krono_db
     ports:
-      - "5432:5432"  # <-- ESTO ES LO QUE FALTABA
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
+      - ./database/migrations:/docker-entrypoint-initdb.d
   redis:
     image: redis:7-alpine
     container_name: krono_redis

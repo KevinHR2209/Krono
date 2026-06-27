@@ -1,5 +1,6 @@
 // services/flash-fill/src/services/auctionResolver.js
 const { getClient } = require('../config/database');
+const axios = require('axios');
 
 async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
   const client = await getClient();
@@ -8,19 +9,19 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
     await client.query('BEGIN');
 
     const auctionResult = await client.query(
-      `SELECT
-        s.id,
-        s.cita_id,
-        s.id_correlacion,
-        s.id_transaccion,
-        s.estado,
-        s.expira_en,
-        s.creado_en,
-        c.id AS cita_id_real
-      FROM subastas s
-      INNER JOIN citas c ON c.id = s.cita_id
-      WHERE s.id = $1`,
-      [auctionId]
+        `SELECT
+           s.id,
+           s.cita_id,
+           s.id_correlacion,
+           s.id_transaccion,
+           s.estado,
+           s.expira_en,
+           s.creado_en,
+           c.id AS cita_id_real
+         FROM subastas s
+                INNER JOIN citas c ON c.id = s.cita_id
+         WHERE s.id = $1`,
+        [auctionId]
     );
 
     if (auctionResult.rowCount === 0) {
@@ -34,15 +35,15 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
     }
 
     const participantResult = await client.query(
-      `SELECT
-        ps.id,
-        ps.candidato_lista_espera_id,
-        ps.identificador_paciente,
-        ps.nombre_visible
-      FROM participantes_subasta ps
-      WHERE ps.subasta_id = $1
-        AND ps.identificador_paciente = $2`,
-      [auctionId, patientId]
+        `SELECT
+           ps.id,
+           ps.candidato_lista_espera_id,
+           ps.identificador_paciente,
+           ps.nombre_visible
+         FROM participantes_subasta ps
+         WHERE ps.subasta_id = $1
+           AND ps.identificador_paciente = $2`,
+        [auctionId, patientId]
     );
 
     if (participantResult.rowCount === 0) {
@@ -51,17 +52,20 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
 
     const participant = participantResult.rows[0];
 
+    // Extraemos también la url de respuesta haciendo un JOIN con sistemas_origen
     const transactionResult = await client.query(
-      `SELECT
-        id,
-        id_transaccion,
-        id_correlacion,
-        creado_en
-      FROM transacciones
-      WHERE subasta_id = $1
-      ORDER BY id ASC
-      LIMIT 1`,
-      [auctionId]
+        `SELECT
+           t.id,
+           t.id_transaccion,
+           t.id_correlacion,
+           t.creado_en,
+           so.url_webhook_respuesta
+         FROM transacciones t
+                INNER JOIN sistemas_origen so ON t.sistema_origen_id = so.id
+         WHERE t.subasta_id = $1
+         ORDER BY t.id ASC
+           LIMIT 1`,
+        [auctionId]
     );
 
     if (transactionResult.rowCount === 0) {
@@ -86,59 +90,79 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
     };
 
     await client.query(
-      `UPDATE subastas
-      SET
-        estado = 'ganada',
-        participante_ganador_id = $2,
-        identificador_paciente_ganador = $3,
-        nombre_visible_ganador = $4,
-        resuelta_en = $5,
-        tiempo_transcurrido_ms = $6,
-        actualizado_en = NOW()
-      WHERE id = $1`,
-      [auctionId, participant.id, patientId, participant.nombre_visible, reassignedAt, elapsedMs]
+        `UPDATE subastas
+         SET
+           estado = 'ganada',
+           participante_ganador_id = $2,
+           identificador_paciente_ganador = $3,
+           nombre_visible_ganador = $4,
+           resuelta_en = $5,
+           tiempo_transcurrido_ms = $6,
+           actualizado_en = NOW()
+         WHERE id = $1`,
+        [auctionId, participant.id, patientId, participant.nombre_visible, reassignedAt, elapsedMs]
     );
 
     await client.query(
-      `UPDATE participantes_subasta
-      SET
-        estado = (
-          CASE
-            WHEN id = $2 THEN 'ganador'
-            ELSE 'perdedor'
-          END
-        )::estado_participante_enum,
+        `UPDATE participantes_subasta
+         SET
+           estado = (
+             CASE
+               WHEN id = $2 THEN 'ganador'
+               ELSE 'perdedor'
+               END
+             )::estado_participante_enum,
         respondido_en = CASE
           WHEN id = $2 THEN $3
-          ELSE respondido_en
+           ELSE respondido_en
         END,
         actualizado_en = NOW()
       WHERE subasta_id = $1`,
-      [auctionId, participant.id, reassignedAt]
+        [auctionId, participant.id, reassignedAt]
     );
 
     await client.query(
-      `UPDATE transacciones
-      SET
-        estado = 'reasignada',
-        participante_ganador_id = $2,
-        identificador_paciente_ganador = $3,
-        nombre_visible_ganador = $4,
-        payload_respuesta = $5::jsonb,
+        `UPDATE transacciones
+         SET
+           estado = 'reasignada',
+           participante_ganador_id = $2,
+           identificador_paciente_ganador = $3,
+           nombre_visible_ganador = $4,
+           payload_respuesta = $5::jsonb,
         reasignada_en = $6,
-        tiempo_transcurrido_ms = $7,
-        ultimo_intento_retorno_en = NOW()
-      WHERE id = $1`,
-      [
-        transaction.id,
-        participant.id,
-        patientId,
-        participant.nombre_visible,
-        JSON.stringify(responsePayload),
-        reassignedAt,
-        elapsedMs
-      ]
+           tiempo_transcurrido_ms = $7,
+           ultimo_intento_retorno_en = NOW()
+         WHERE id = $1`,
+        [
+          transaction.id,
+          participant.id,
+          patientId,
+          participant.nombre_visible,
+          JSON.stringify(responsePayload),
+          reassignedAt,
+          elapsedMs
+        ]
     );
+
+    let webhookStatus = 'skipped';
+    let webhookReason = 'url_retorno no configurada en el sistema origen';
+
+    // Disparar Webhook de retorno si la URL está configurada
+    if (transaction.url_webhook_respuesta) {
+      try {
+        await axios.post(transaction.url_webhook_respuesta, responsePayload, {
+          timeout: 5000,
+          headers: { 'Content-Type': 'application/json' }
+        });
+        webhookStatus = 'success';
+        webhookReason = 'Notificación enviada exitosamente al sistema origen';
+        console.log(`[Flash-Fill] Retorno exitoso a: ${transaction.url_webhook_respuesta}`);
+      } catch (webhookError) {
+        webhookStatus = 'failed';
+        webhookReason = webhookError.message;
+        console.error(`[Flash-Fill] Error al notificar al webhook: ${webhookError.message}`);
+      }
+    }
 
     await client.query('COMMIT');
 
@@ -147,8 +171,9 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
       statusCode: 200,
       responsePayload,
       returnEvent: {
-        skipped: true,
-        reason: 'url_retorno no disponible en el esquema actual'
+        skipped: webhookStatus === 'skipped',
+        status: webhookStatus,
+        reason: webhookReason
       }
     };
   } catch (error) {

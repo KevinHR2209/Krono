@@ -13,6 +13,7 @@ const waitlistCandidateSchema = z.object({
 const webhookSchema = z.object({
   event_type: z.literal('appointment_cancelled'),
   source_system_id: z.string().min(1),
+  return_url: z.string().url().optional(),
   cancellation: z.object({
     appointment_id: z.string().min(1),
     cancelled_at: z.string().datetime(),

@@ -7,45 +7,54 @@ const { rankCandidates, selectTopCandidates, DEFAULT_WEIGHTS } = require('./smar
 const AUCTION_EXPIRY_SECONDS = 120;
 
 async function ensureSourceSystem(client, payload) {
-  const existing = await client.query(
-      `
-        SELECT id, identificador_sistema_origen, nombre, url_webhook_respuesta
-        FROM sistemas_origen
-        WHERE identificador_sistema_origen = $1
-          LIMIT 1
-      `,
-      [payload.source_system_id]
-  );
+    const existing = await client.query(
+        `
+            SELECT id, identificador_sistema_origen, nombre, url_webhook_respuesta
+            FROM sistemas_origen
+            WHERE identificador_sistema_origen = $1
+                LIMIT 1
+        `,
+        [payload.source_system_id]
+    );
 
-  if (existing.rows.length > 0) {
-    return existing.rows[0];
-  }
+    if (existing.rows.length > 0) {
+        const sys = existing.rows[0];
+        // Autocorrección: si la barbería cambió de URL, Krono la actualiza dinámicamente
+        if (payload.return_url && sys.url_webhook_respuesta !== payload.return_url) {
+            await client.query(
+                `UPDATE sistemas_origen SET url_webhook_respuesta = $1 WHERE id = $2`,
+                [payload.return_url, sys.id]
+            );
+            sys.url_webhook_respuesta = payload.return_url;
+        }
+        return sys;
+    }
 
-  const inserted = await client.query(
-      `
-        INSERT INTO sistemas_origen (
-          identificador_sistema_origen,
-          nombre,
-          dominio,
-          hash_api_key,
-          correo_contacto,
-          url_webhook_respuesta,
-          activo
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, TRUE)
-          RETURNING id, identificador_sistema_origen, nombre, url_webhook_respuesta
-      `,
-      [
-        payload.source_system_id,
-        payload.source_system_id,
-        null,
-        'bootstrap-api-key-hash',
-        null,
-        null
-      ]
-  );
+    const inserted = await client.query(
+        `
+            INSERT INTO sistemas_origen (
+                identificador_sistema_origen,
+                nombre,
+                dominio,
+                hash_api_key,
+                correo_contacto,
+                url_webhook_respuesta,
+                activo
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+                RETURNING id, identificador_sistema_origen, nombre, url_webhook_respuesta
+        `,
+        [
+            payload.source_system_id,
+            payload.source_system_id,
+            null,
+            'bootstrap-api-key-hash',
+            null,
+            payload.return_url || null
+        ]
+    );
 
-  return inserted.rows[0];
+    return inserted.rows[0];
 }
 
 async function ensureAppointment(client, sistemaOrigenId, payload) {

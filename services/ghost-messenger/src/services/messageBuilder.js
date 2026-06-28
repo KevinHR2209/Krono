@@ -9,22 +9,22 @@ function buildMessage(candidate, slot, token) {
   const { display_name } = candidate;
   
   const message = `
-🏥 *CUPO DISPONIBLE - KRONO*
+CUPO DISPONIBLE - Barberia Krono
 
 Hola *${display_name}*, tienes un cupo disponible!
 
-📅 *Fecha:* ${slot.date}
-⏰ *Hora:* ${slot.start_time} - ${slot.end_time}
-👨‍⚕️ *Doctor:* ${slot.doctor_name}
-🩺 *Especialidad:* ${slot.specialty}
-📍 *Lugar:* ${slot.location}
+Fecha: ${slot.date}
+Hora: ${slot.start_time} - ${slot.end_time}
+Peluquero: ${slot.doctor_name}
+Corte: ${slot.specialty}
+Lugar: ${slot.location}
 
-*¡Responde rápido! Este cupo es para el primero que confirme.*
+¡Responde rápido! Este cupo es para el primero que confirme.
 
 Haz clic aquí para confirmar:
 ${token}
 
-⚠️ *Enlace expira en 2 minutos*
+Enlace expira en 2 minutos
 `.trim();
   
   return message;

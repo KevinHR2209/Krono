@@ -12,11 +12,11 @@ async function startServer() {
     await startWorker();
 
     app.listen(PORT, () => {
-      console.log(`👻 Ghost-Messenger running on port ${PORT}`);
-      console.log(`📦 Queue: ${process.env.BULLMQ_QUEUE_NAME}`);
+      console.log(`Ghost-Messenger funcionando en el puerto ${PORT}`);
+      console.log(`Queue: ${process.env.BULLMQ_QUEUE_NAME}`);
     });
   } catch (error) {
-    console.error('❌ Failed to start Ghost-Messenger:', error);
+    console.error('Fallo en iniciar GhostMessenger:', error);
     process.exit(1);
   }
 }

@@ -16,20 +16,20 @@ function buildConfirmLink(patientId, auctionId, appointmentId) {
 
 function buildMessage(candidate, slot, confirmLink) {
   return `
-🏥 *CUPO DISPONIBLE - KRONO*
+CUPO DISPONIBLE - Barberia Krono
 
 Hola *${candidate.display_name}*, tienes un cupo disponible.
 
-📅 *Fecha:* ${slot.date}
-⏰ *Hora:* ${slot.start_time} - ${slot.end_time}
-👨‍⚕️ *Doctor:* ${slot.doctor_name}
-🩺 *Especialidad:* ${slot.specialty}
-📍 *Lugar:* ${slot.location}
+ Fecha: ${slot.date}
+ Hora: ${slot.start_time} - ${slot.end_time}
+ Peluquero: ${slot.doctor_name}
+ Corte: ${slot.specialty}
+ Lugar: ${slot.location}
 
 Haz clic aquí para confirmar:
 ${confirmLink}
 
-⚠️ Este enlace expira en 2 minutos.
+Este enlace expira en 2 minutos.
 `.trim();
 }
 
@@ -51,7 +51,6 @@ async function processNotificationJob(job) {
   const appointmentId = data.appointment_id;
   const slot = data.slot;
   const candidates = normalizeCandidates(data)
-  console.log('🔍 Primer candidato:', JSON.stringify(candidates[0], null, 2));
 
   if (!auctionId || !appointmentId || !slot || !Array.isArray(candidates) || candidates.length === 0) {
     throw new Error('Invalid job data: auction_id, appointment_id, slot and at least one candidate are required');
@@ -76,7 +75,7 @@ async function processNotificationJob(job) {
     if (candidate.email) {
       emailResult = await sendEmailMessage(candidate.email, candidate, slot, confirmLink);
     } else {
-      console.warn(`⚠️  Candidato ${candidate.patient_id} no tiene email, se omite canal email.`);
+      console.warn(`Candidato ${candidate.patient_id} no tiene email, se omite canal email.`);
     }
 
     results.push({
@@ -111,33 +110,33 @@ async function startWorker() {
   if (queue || worker) return;
 
   queue = new Queue(workerConfig.queueName, {
-    connection: workerConfig.redisUrl
+    connection: workerConfig.redisConnection
   });
 
   worker = new Worker(
     workerConfig.queueName,
     async (job) => processNotificationJob(job),
     {
-      connection: workerConfig.redisUrl,
+      connection: workerConfig.redisConnection,
       concurrency: workerConfig.workerOptions.concurrency
     }
   );
 
   worker.on('completed', (job) => {
-    console.log(`✅ Job ${job.id} completed`);
+    console.log(`Job ${job.id} completed`);
   });
 
   worker.on('failed', (job, error) => {
-    console.error(`❌ Job ${job?.id} failed:`, error.message);
+    console.error(`Job ${job?.id} failed:`, error.message);
   });
 
   worker.on('error', (error) => {
-    console.error('🔥 Worker error:', error);
+    console.error('Worker error:', error);
   });
 
-  console.log(`👷 Worker started for queue: ${workerConfig.queueName}`);
-  console.log(`🔄 Concurrency: ${workerConfig.workerOptions.concurrency}`);
-  console.log(`🔁 Max attempts: ${workerConfig.jobOptions.attempts}`);
+  console.log(`Worker started for queue: ${workerConfig.queueName}`);
+  console.log(`Concurrency: ${workerConfig.workerOptions.concurrency}`);
+  console.log(`Max attempts: ${workerConfig.jobOptions.attempts}`);
 }
 
 async function enqueueNotification(auctionId, appointmentId, slot, candidates) {

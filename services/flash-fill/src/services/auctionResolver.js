@@ -1,6 +1,7 @@
 // services/flash-fill/src/services/auctionResolver.js
 const { getClient } = require('../config/database');
 const axios = require('axios');
+const { sendReturnEventWithRetry } = require('./returnEvent');
 
 async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
   const client = await getClient();
@@ -150,18 +151,30 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
     // Disparar Webhook de retorno si la URL está configurada
     if (transaction.url_webhook_respuesta) {
       try {
-        await axios.post(transaction.url_webhook_respuesta, responsePayload, {
-          timeout: 5000,
-          headers: { 'Content-Type': 'application/json' }
+        const returnResult = await sendReturnEventWithRetry({
+          url: transaction.url_webhook_respuesta, // ¡Aquí conectamos el puente!
+          payload: responsePayload,
+          referenceId: transaction.id_transaccion
         });
-        webhookStatus = 'success';
-        webhookReason = 'Notificación enviada exitosamente al sistema origen';
-        console.log(`[Flash-Fill] Retorno exitoso a: ${transaction.url_webhook_respuesta}`);
+
+        if (returnResult.success) {
+          webhookStatus = 'success';
+          webhookReason = `Notificación enviada exitosamente (intentos: ${returnResult.attempts})`;
+          console.log(`[Flash-Fill] Retorno exitoso a: ${transaction.url_webhook_respuesta}`);
+        } else {
+          webhookStatus = 'failed';
+          webhookReason = returnResult.error;
+          console.error(`[Flash-Fill] Error al notificar al webhook tras varios intentos: ${returnResult.error}`);
+        }
       } catch (webhookError) {
+        // Por si algo catastrófico pasa antes de ejecutar la función
         webhookStatus = 'failed';
         webhookReason = webhookError.message;
-        console.error(`[Flash-Fill] Error al notificar al webhook: ${webhookError.message}`);
+        console.error(`[Flash-Fill] Error fatal en returnEvent: ${webhookError.message}`);
       }
+    } else {
+      // Si llega aquí, significa que la BD no tenía la URL guardada
+      console.warn(`[Flash-Fill] ADVERTENCIA: transaccion ${transaction.id_transaccion} no tiene url_webhook_respuesta`);
     }
 
     await client.query('COMMIT');

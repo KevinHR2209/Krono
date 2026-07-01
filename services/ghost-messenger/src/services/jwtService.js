@@ -3,11 +3,12 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'krono_ghost_messenger_secret_key_2026';
 const JWT_EXPIRY_SECONDS = parseInt(process.env.JWT_EXPIRY_SECONDS, 10) || 120;
 
-function generateJwt(auctionId, patientId, appointmentId) {
+function generateJwt(auctionId, patientId, appointmentId, slotData = {}) {
   const payload = {
     auction_id: auctionId,
     patient_id: patientId,
-    appointment_id: appointmentId
+    appointment_id: appointmentId,
+    ...slotData // datos de la reserva
   };
 
   return jwt.sign(payload, JWT_SECRET, {

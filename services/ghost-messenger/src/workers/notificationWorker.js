@@ -7,8 +7,8 @@ const { sendEmailMessage } = require('../services/emailService'); // ← NUEVO
 let queue = null;
 let worker = null;
 
-function buildConfirmLink(patientId, auctionId, appointmentId) {
-  const token = generateJwt(auctionId, patientId, appointmentId);
+function buildConfirmLink(patientId, auctionId, appointmentId, slot) {
+  const token = generateJwt(auctionId, patientId, appointmentId, slot);
   const baseUrl = process.env.FLASH_FILL_BASE_URL || 'http://localhost:3001';
   return `${baseUrl}${token}`;
   //return `${baseUrl}/api/v1/confirm/${token}`;
@@ -64,7 +64,7 @@ async function processNotificationJob(job) {
       throw new Error('Invalid candidate data');
     }
 
-    const confirmLink = buildConfirmLink(candidate.patient_id, auctionId, appointmentId);
+    const confirmLink = buildConfirmLink(candidate.patient_id, auctionId, appointmentId, slot);
 
     // ── Canal 1: WhatsApp (comportamiento original intacto) ──────────────
     const message = buildMessage(candidate, slot, confirmLink);

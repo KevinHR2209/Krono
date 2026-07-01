@@ -23,10 +23,10 @@ const makeCandidates = (overrides = []) =>
 
 // ─── haversineDistance ─────────────────────────────────────────
 describe('haversineDistance', () => {
-  test('calcula distancia real Santiago ↔ Valparaíso (~110 km)', () => {
+  test('calcula distancia real Santiago ↔ Valparaíso (~98 km)', () => {
     const dist = haversineDistance(-33.4489, -70.6693, -33.0472, -71.6127);
-    expect(dist).toBeGreaterThan(100);
-    expect(dist).toBeLessThan(120);
+    expect(dist).toBeGreaterThan(90);
+    expect(dist).toBeLessThan(110);
   });
 
   test('retorna 15 (penalización máxima) si lat1 es null', () => {

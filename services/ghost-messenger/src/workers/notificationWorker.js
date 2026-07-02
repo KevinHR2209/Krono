@@ -1,8 +1,10 @@
 const { Queue, Worker } = require('bullmq');
 const workerConfig = require('../config/workerConfig');
 const { generateJwt } = require('../services/jwtService');
-const { sendWhatsAppMessage } = require('../services/whatsappService');
-const { sendEmailMessage } = require('../services/emailService'); // ← NUEVO
+
+// Acceso lazy via require() para que jest.mock() pueda interceptar correctamente
+function getWhatsappService() { return require('../services/whatsappService'); }
+function getEmailService()    { return require('../services/emailService'); }
 
 let queue = null;
 let worker = null;
@@ -50,7 +52,7 @@ async function processNotificationJob(job) {
   const auctionId = data.auction_id;
   const appointmentId = data.appointment_id;
   const slot = data.slot;
-  const candidates = normalizeCandidates(data)
+  const candidates = normalizeCandidates(data);
 
   if (!auctionId || !appointmentId || !slot || !Array.isArray(candidates) || candidates.length === 0) {
     throw new Error('Invalid job data: auction_id, appointment_id, slot and at least one candidate are required');
@@ -66,14 +68,14 @@ async function processNotificationJob(job) {
 
     const confirmLink = buildConfirmLink(candidate.patient_id, auctionId, appointmentId, slot);
 
-    // ── Canal 1: WhatsApp (comportamiento original intacto) ──────────────
+    // ── Canal 1: WhatsApp ────────────────────────────────────────────────
     const message = buildMessage(candidate, slot, confirmLink);
-    const whatsappResult = await sendWhatsAppMessage(candidate.phone, message);
+    const whatsappResult = await getWhatsappService().sendWhatsAppMessage(candidate.phone, message);
 
-    // ── Canal 2: Email via Mailtrap (nuevo) ──────────────────────────────
+    // ── Canal 2: Email via Mailtrap ──────────────────────────────────────
     let emailResult = { success: false, messageId: null };
     if (candidate.email) {
-      emailResult = await sendEmailMessage(candidate.email, candidate, slot, confirmLink);
+      emailResult = await getEmailService().sendEmailMessage(candidate.email, candidate, slot, confirmLink);
     } else {
       console.warn(`Candidato ${candidate.patient_id} no tiene email, se omite canal email.`);
     }
@@ -171,5 +173,6 @@ async function closeWorker() {
 module.exports = {
   startWorker,
   enqueueNotification,
-  closeWorker
+  closeWorker,
+  processNotificationJob
 };

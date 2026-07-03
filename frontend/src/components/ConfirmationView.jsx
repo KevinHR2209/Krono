@@ -6,7 +6,6 @@ export default function ConfirmationView() {
   const [token, setToken] = useState('');
   const [appointmentData, setAppointmentData] = useState(null);
 
-  // Función para decodificar el payload del JWT sin usar librerías externas
   const parseJwt = (token) => {
     try {
       const base64Url = token.split('.')[1];
@@ -28,11 +27,9 @@ export default function ConfirmationView() {
     const tokenParam = urlParams.get('token');
 
     if (tokenParam) {
-      // 1. Limpiamos el token por si trae basura de la URL
       const cleanToken = tokenParam.replace(/^\/?api\/v1\/confirm\//, '');
       setToken(cleanToken);
 
-      // 2. Extraemos los datos para mostrarlos en pantalla
       const decodedData = parseJwt(cleanToken);
       if (decodedData) {
         setAppointmentData(decodedData);
@@ -63,69 +60,77 @@ export default function ConfirmationView() {
     }
   };
 
+  // Pantalla de Éxito (Modificada a diseño claro)
   if (status === 'success') {
     return (
-        <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mb-6">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center font-sans">
+          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 shadow-sm">
+            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7"></path></svg>
           </div>
-          <h2 className="text-3xl font-light text-zinc-100 mb-2">¡Cupo Confirmado!</h2>
-          <p className="text-zinc-400 mb-8 max-w-sm">Tu asistencia ha sido registrada exitosamente. Te esperamos en la barbería.</p>
+          <h2 className="text-3xl font-bold text-slate-800 mb-3">¡Cupo Confirmado!</h2>
+          <p className="text-slate-500 mb-8 max-w-sm text-lg">Tu asistencia ha sido registrada exitosamente. Te esperamos en tu cita.</p>
         </div>
     );
   }
 
+  // Pantalla Principal (Modificada a diseño claro)
   return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6">
-        <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
+        <div className="bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
 
-          <div className="p-6 border-b border-zinc-800 bg-zinc-900/50">
-            <h2 className="text-2xl font-light text-zinc-100 tracking-wide">Recuperación de Cupo</h2>
-            <p className="text-sm text-emerald-400 mt-1 font-medium">Prioridad asignada por Smart-Queue</p>
+          {/* Cabecera */}
+          <div className="p-8 border-b border-slate-100 bg-white text-center">
+            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Recuperación de Cupo</h2>
+            <p className="text-sm text-emerald-600 mt-2 font-medium bg-emerald-50 inline-block px-3 py-1 rounded-full border border-emerald-100">
+              Prioridad asignada por Smart-Queue
+            </p>
           </div>
 
-          <div className="p-6 space-y-4">
+          {/* Detalles de la cita */}
+          <div className="p-8 space-y-6">
             <div className="flex flex-col">
-              <span className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">Servicio / Barbero</span>
-              <span className="text-lg text-zinc-200">
+              <span className="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-1">Servicio / Barbero</span>
+              <span className="text-lg text-slate-800 font-medium">
               {appointmentData?.specialty || 'Servicio'} - {appointmentData?.doctor_name || 'Barbero'}
             </span>
             </div>
 
             <div className="flex flex-col">
-              <span className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">Fecha y Hora</span>
-              <span className="text-lg text-zinc-200">
-              {appointmentData?.date ? new Date(appointmentData.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Fecha pendiente'} • {appointmentData?.start_time || '00:00'}
+              <span className="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-1">Fecha y Hora</span>
+              <span className="text-lg text-slate-800 font-medium">
+              {appointmentData?.date ? new Date(appointmentData.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Fecha pendiente'} • <span className="text-emerald-600 font-bold">{appointmentData?.start_time || '00:00'}</span>
             </span>
             </div>
 
             <div className="flex flex-col mb-4">
-              <span className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">Ubicación</span>
-              <span className="text-lg text-zinc-200">
+              <span className="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-1">Ubicación</span>
+              <span className="text-lg text-slate-800 font-medium">
               {appointmentData?.location || 'Local Principal'}
             </span>
             </div>
 
+            {/* Mensajes de Error */}
             {status === 'error' && (
-                <div className="bg-rose-950/30 border border-rose-900/50 text-rose-400 p-4 rounded-lg text-sm font-mono mt-4">
-                  ⚠ {errorMessage}
+                <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-xl text-sm font-medium mt-4 flex items-start gap-2">
+                  <span className="text-lg leading-none">⚠</span> {errorMessage}
                 </div>
             )}
 
+            {/* Botón de Acción */}
             <button
                 onClick={confirmarCupo}
                 disabled={status === 'loading' || !token}
-                className="w-full mt-6 bg-zinc-100 text-zinc-950 py-4 px-4 rounded-xl hover:bg-white disabled:bg-zinc-800 disabled:text-zinc-600 transition-all duration-300 font-bold tracking-wide text-lg flex justify-center items-center shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+                className="w-full mt-6 bg-slate-800 text-white py-4 px-4 rounded-xl hover:bg-slate-900 disabled:bg-slate-200 disabled:text-slate-400 transition-all duration-300 font-semibold tracking-wide text-lg flex justify-center items-center shadow-md disabled:shadow-none"
             >
               {status === 'loading' ? (
-                  <span className="animate-pulse">Procesando...</span>
+                  <span className="animate-pulse">Procesando confirmación...</span>
               ) : (
                   "Confirmar Asistencia"
               )}
             </button>
 
-            <p className="text-center text-xs text-zinc-600 mt-4">
-              Al confirmar, asumes el compromiso de asistir a la hora indicada.
+            <p className="text-center text-xs text-slate-500 mt-5 leading-relaxed">
+              Al confirmar, asumes el compromiso de asistir a la hora indicada para no perjudicar al resto de la lista de espera.
             </p>
           </div>
         </div>

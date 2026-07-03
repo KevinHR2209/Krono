@@ -67,35 +67,35 @@ export default function Simulator() {
   };
 
   return (
-    <div className="bg-zinc-950 border border-zinc-800 p-8 rounded-2xl shadow-2xl mt-8">
-      <div className="flex flex-col items-start mb-8">
-        <h2 className="text-2xl font-light tracking-wide text-zinc-100">Simulador de Eventos</h2>
-        <p className="text-xs text-zinc-500 mt-2 font-mono bg-zinc-900 px-3 py-1 rounded-md border border-zinc-800">
-          &gt; webhook_listener: active
-        </p>
-      </div>
-
-      <button
-        onClick={dispararWebhook}
-        disabled={loading}
-        className="w-full bg-zinc-100 text-zinc-950 py-3 px-4 rounded-lg hover:bg-white disabled:bg-zinc-800 disabled:text-zinc-600 transition-all font-semibold tracking-wide"
-      >
-        {loading ? "Transmitiendo..." : "Ejecutar Cancelación"}
-      </button>
-
-      {response && (
-        <div className={`mt-8 p-5 rounded-xl border text-sm font-mono ${
-          response.status === 200 || response.status === 202 
-            ? 'bg-emerald-950/20 border-emerald-900/50 text-emerald-400' 
-            : 'bg-rose-950/20 border-rose-900/50 text-rose-400'
-        }`}>
-          <div className="flex items-center gap-2 mb-4">
-            <span className={`w-2 h-2 rounded-full ${response.status === 200 || response.status === 202 ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-            <h3 className="font-semibold">STATUS: {response.status}</h3>
-          </div>
-          <pre className="whitespace-pre-wrap">{JSON.stringify(response.data || response.error, null, 2)}</pre>
+      <div className="bg-white border border-slate-200 p-8 rounded-2xl shadow-sm mt-8 font-sans">
+        <div className="flex flex-col items-start mb-8">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-800">Simulador de Eventos</h2>
+          <p className="text-xs text-emerald-700 mt-2 font-mono bg-emerald-50 px-3 py-1 rounded-md border border-emerald-200">
+            &gt; webhook_listener: active
+          </p>
         </div>
-      )}
-    </div>
+
+        <button
+            onClick={dispararWebhook}
+            disabled={loading}
+            className="w-full bg-slate-800 text-white py-3 px-4 rounded-xl hover:bg-slate-900 disabled:bg-slate-200 disabled:text-slate-400 transition-all font-semibold tracking-wide shadow-md disabled:shadow-none"
+        >
+          {loading ? "Transmitiendo..." : "Ejecutar Cancelación"}
+        </button>
+
+        {response && (
+            <div className={`mt-8 p-5 rounded-xl border text-sm font-mono ${
+                response.status === 200 || response.status === 202
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                    : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
+              <div className="flex items-center gap-2 mb-4">
+                <span className={`w-2.5 h-2.5 rounded-full ${response.status === 200 || response.status === 202 ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+                <h3 className="font-semibold">STATUS: {response.status}</h3>
+              </div>
+              <pre className="whitespace-pre-wrap">{JSON.stringify(response.data || response.error, null, 2)}</pre>
+            </div>
+        )}
+      </div>
   );
 }

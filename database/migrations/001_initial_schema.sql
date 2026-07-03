@@ -177,16 +177,16 @@ CREATE TABLE IF NOT EXISTS transacciones (
 
 CREATE TABLE IF NOT EXISTS configuracion_pesos (
                                                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    peso_historial_asistencia NUMERIC(4,3) NOT NULL,
-    peso_distancia NUMERIC(4,3) NOT NULL,
+    sistema_origen_id UUID NOT NULL REFERENCES sistemas_origen(id) ON DELETE CASCADE,
+    pesos JSONB NOT NULL, -- Guardará: {"asistencia": 0.6, "distancia": 0.4} o {"nivel_jugador": 0.5, "fiabilidad": 0.5}
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     vigente_desde TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     creado_por VARCHAR(100) NOT NULL DEFAULT 'system',
-    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT chk_configuracion_pesos_historial CHECK (peso_historial_asistencia >= 0 AND peso_historial_asistencia <= 1),
-    CONSTRAINT chk_configuracion_pesos_distancia CHECK (peso_distancia >= 0 AND peso_distancia <= 1),
-    CONSTRAINT chk_configuracion_pesos_suma CHECK ((peso_historial_asistencia + peso_distancia) BETWEEN 0.999 AND 1.001)
+    creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+-- Índice para búsquedas rápidas de la configuración activa por sistema
+CREATE INDEX IF NOT EXISTS idx_configuracion_pesos_sistema_activo ON configuracion_pesos (sistema_origen_id, activo, vigente_desde DESC);
 
 CREATE TABLE IF NOT EXISTS cola_letras_muertas (
                                                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

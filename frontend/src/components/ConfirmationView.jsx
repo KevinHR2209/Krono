@@ -1,41 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+
+// Sacamos la función fuera del componente para no recrearla en cada render
+const parseJwt = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+        window.atob(base64).split('').map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error('Error decodificando el token:', e);
+    return null;
+  }
+};
+
+// Creamos un helper para leer la URL sincronamente
+const getInitialData = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const tokenParam = urlParams.get('token');
+
+  if (!tokenParam) return { initialToken: '', initialData: null };
+
+  const cleanToken = tokenParam.replace(/^\/?api\/v1\/confirm\//, '');
+  return {
+    initialToken: cleanToken,
+    initialData: parseJwt(cleanToken)
+  };
+};
 
 export default function ConfirmationView() {
   const [status, setStatus] = useState('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  const [token, setToken] = useState('');
-  const [appointmentData, setAppointmentData] = useState(null);
 
-  const parseJwt = (token) => {
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-          window.atob(base64).split('').map(function (c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-          }).join('')
-      );
-      return JSON.parse(jsonPayload);
-    } catch (e) {
-      console.error('Error decodificando el token:', e);
-      return null;
-    }
-  };
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tokenParam = urlParams.get('token');
-
-    if (tokenParam) {
-      const cleanToken = tokenParam.replace(/^\/?api\/v1\/confirm\//, '');
-      setToken(cleanToken);
-
-      const decodedData = parseJwt(cleanToken);
-      if (decodedData) {
-        setAppointmentData(decodedData);
-      }
-    }
-  }, []);
+  // ¡Magia! Inicializamos leyendo la URL directamente en el primer render
+  const [{ initialToken: token, initialData: appointmentData }] = useState(getInitialData);
 
   const confirmarCupo = async () => {
     if (!token) return;
@@ -55,12 +56,13 @@ export default function ConfirmationView() {
         setErrorMessage(data.error || 'El cupo ya no está disponible.');
       }
     } catch (error) {
+      console.error('Fallo en la petición de confirmación:', error);
+
       setStatus('error');
       setErrorMessage('Error de conexión con el servidor.');
     }
   };
 
-  // Pantalla de Éxito (Modificada a diseño claro)
   if (status === 'success') {
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center font-sans">
@@ -73,12 +75,10 @@ export default function ConfirmationView() {
     );
   }
 
-  // Pantalla Principal (Modificada a diseño claro)
   return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
         <div className="bg-white border border-slate-200 w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
 
-          {/* Cabecera */}
           <div className="p-8 border-b border-slate-100 bg-white text-center">
             <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Recuperación de Cupo</h2>
             <p className="text-sm text-emerald-600 mt-2 font-medium bg-emerald-50 inline-block px-3 py-1 rounded-full border border-emerald-100">
@@ -86,7 +86,6 @@ export default function ConfirmationView() {
             </p>
           </div>
 
-          {/* Detalles de la cita */}
           <div className="p-8 space-y-6">
             <div className="flex flex-col">
               <span className="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-1">Servicio / Barbero</span>
@@ -109,14 +108,12 @@ export default function ConfirmationView() {
             </span>
             </div>
 
-            {/* Mensajes de Error */}
             {status === 'error' && (
                 <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-xl text-sm font-medium mt-4 flex items-start gap-2">
                   <span className="text-lg leading-none">⚠</span> {errorMessage}
                 </div>
             )}
 
-            {/* Botón de Acción */}
             <button
                 onClick={confirmarCupo}
                 disabled={status === 'loading' || !token}

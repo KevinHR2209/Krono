@@ -24,33 +24,37 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function enrichCandidates(waitlist, shopLat, shopLon, customWeights = DEFAULT_WEIGHTS) {
-  const MAX_DISTANCE_KM = 15; // Distancia límite para puntuar
+const MAX_DISTANCE_KM = 15;
 
+function enrichCandidates(waitlist, shopLat, shopLon, customWeights = FALLBACK_WEIGHTS) {
   return waitlist.map((candidate) => {
-    const historialAsistenciaNormalizado = Number(candidate.attendance_history.toFixed(5));
-
-    // Calcular distancia real
+    // 1. Calculamos la distancia automáticamente en Krono
     const distanceKm = haversineDistance(shopLat, shopLon, candidate.latitud, candidate.longitud);
-
-    // Normalizar: 0km = 1.0 pt, 15km o más = 0.0 pts
     let distanciaNormalizada = 1 - (distanceKm / MAX_DISTANCE_KM);
     if (distanciaNormalizada < 0) distanciaNormalizada = 0;
     distanciaNormalizada = Number(distanciaNormalizada.toFixed(5));
 
-    const puntajePrioridad = Number(
-        (
-            (customWeights.w1 * historialAsistenciaNormalizado) +
-            (customWeights.w2 * distanciaNormalizada)
-        ).toFixed(5)
-    );
+    // 2. Unimos las métricas que envía el cliente con la distancia que calculó Krono
+    const metricasEvaluables = {
+      ...candidate.metrics,
+      distancia: distanciaNormalizada
+    };
+
+    let puntajePrioridad = 0;
+
+    // 3. Recorremos los pesos configurados en el Frontend/Base de datos
+    for (const [parametro, peso] of Object.entries(customWeights)) {
+      // Si el candidato trae una métrica que coincide con lo que el negocio configuró
+      if (metricasEvaluables[parametro] !== undefined) {
+        puntajePrioridad += peso * metricasEvaluables[parametro];
+      }
+    }
 
     return {
       ...candidate,
       distancia_km: Number(distanceKm.toFixed(2)),
-      historial_asistencia_normalizado: historialAsistenciaNormalizado,
       distancia_normalizada: distanciaNormalizada,
-      puntaje_prioridad: puntajePrioridad
+      puntaje_prioridad: Number(puntajePrioridad.toFixed(5))
     };
   });
 }

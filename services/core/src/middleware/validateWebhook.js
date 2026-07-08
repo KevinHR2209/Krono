@@ -5,9 +5,10 @@ const waitlistCandidateSchema = z.object({
   display_name: z.string().min(1),
   phone: z.string().regex(/^\+569\d{8}$/),
   email: z.string().email().optional(),
-  attendance_history: z.number().min(0).max(1),
   latitud: z.number().nullable().optional(),
-  longitud: z.number().nullable().optional()
+  longitud: z.number().nullable().optional(),
+  // Aceptamos cualquier métrica dinámica (asistencia, urgencia, tamano_grupo, etc.)
+  metrics: z.record(z.number()).default({})
 });
 
 const webhookSchema = z.object({

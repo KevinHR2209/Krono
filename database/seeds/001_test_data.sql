@@ -53,21 +53,21 @@ INSERT INTO configuracion_pesos (
 ) VALUES
       (
           '44444444-4444-4444-4444-444444444441',
-          '11111111-1111-1111-1111-111111111111', -- Barbería
+          '11111111-1111-1111-1111-111111111111',
           '{"asistencia": 0.60, "distancia": 0.40}'::jsonb,
           TRUE,
           'seed'
       ),
       (
           '44444444-4444-4444-4444-444444444442',
-          '22222222-2222-2222-2222-222222222222', -- Canchas SportCenter
+          '22222222-2222-2222-2222-222222222222',
           '{"fiabilidad": 0.50, "nivel_jugador": 0.30, "distancia": 0.20}'::jsonb,
           TRUE,
           'seed'
       ),
       (
           '44444444-4444-4444-4444-444444444443',
-          '33333333-3333-3333-3333-333333333333', -- Cafetería Valparaíso
+          '33333333-3333-3333-3333-333333333333',
           '{"tamaño_grupo": 0.50, "fidelidad": 0.30, "distancia": 0.20}'::jsonb,
           TRUE,
           'seed'
@@ -92,7 +92,7 @@ INSERT INTO citas (
 ) VALUES
       (
           '55555555-5555-5555-5555-555555555551',
-          '11111111-1111-1111-1111-111111111111', -- Perteneciente a Barbería
+          '11111111-1111-1111-1111-111111111111',
           'APT-2026-000847',
           NOW() - INTERVAL '5 minutes',
           CURRENT_DATE + INTERVAL '1 day',
@@ -107,7 +107,7 @@ INSERT INTO citas (
       ),
       (
           '55555555-5555-5555-5555-555555555552',
-          '33333333-3333-3333-3333-333333333333', -- Perteneciente a Cafetería
+          '33333333-3333-3333-3333-333333333333',
           'RES-2026-000112',
           NOW() - INTERVAL '15 minutes',
           CURRENT_DATE + INTERVAL '2 days',
@@ -122,16 +122,14 @@ INSERT INTO citas (
       )
     ON CONFLICT (sistema_origen_id, identificador_cita_externa) DO NOTHING;
 
--- 4. CANDIDATOS EN LISTA DE ESPERA (Para la cita de la Barbería)
+-- 4. CANDIDATOS EN LISTA DE ESPERA
 INSERT INTO candidatos_lista_espera (
     id,
     cita_id,
     identificador_paciente,
     nombre_visible,
     telefono,
-    historial_asistencia,
-    dias_espera,
-    nivel_urgencia
+    historial_asistencia
 ) VALUES
       (
           '60000000-0000-0000-0000-000000000001',
@@ -139,9 +137,7 @@ INSERT INTO candidatos_lista_espera (
           'PAT-0204',
           'Ana Flores',
           '+56912345678',
-          0.950,
-          14,
-          3
+          0.950
       ),
       (
           '60000000-0000-0000-0000-000000000002',
@@ -149,9 +145,7 @@ INSERT INTO candidatos_lista_espera (
           'PAT-0311',
           'Jorge Ramírez',
           '+56912345679',
-          0.870,
-          30,
-          4
+          0.870
       ),
       (
           '60000000-0000-0000-0000-000000000003',
@@ -159,9 +153,7 @@ INSERT INTO candidatos_lista_espera (
           'PAT-0148',
           'Camila Soto',
           '+56912345680',
-          0.990,
-          7,
-          2
+          0.990
       ),
       (
           '60000000-0000-0000-0000-000000000004',
@@ -169,9 +161,7 @@ INSERT INTO candidatos_lista_espera (
           'PAT-0187',
           'Matías Pérez',
           '+56912345681',
-          0.760,
-          45,
-          4
+          0.760
       ),
       (
           '60000000-0000-0000-0000-000000000005',
@@ -179,9 +169,7 @@ INSERT INTO candidatos_lista_espera (
           'PAT-0222',
           'Fernanda Muñoz',
           '+56912345682',
-          0.920,
-          21,
-          1
+          0.920
       )
     ON CONFLICT (cita_id, identificador_paciente) DO NOTHING;
 

@@ -178,15 +178,13 @@ CREATE TABLE IF NOT EXISTS transacciones (
 CREATE TABLE IF NOT EXISTS configuracion_pesos (
                                                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sistema_origen_id UUID NOT NULL REFERENCES sistemas_origen(id) ON DELETE CASCADE,
-    pesos JSONB NOT NULL, -- Guardará: {"asistencia": 0.6, "distancia": 0.4} o {"nivel_jugador": 0.5, "fiabilidad": 0.5}
+    pesos JSONB NOT NULL,
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     vigente_desde TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     creado_por VARCHAR(100) NOT NULL DEFAULT 'system',
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
--- Índice para búsquedas rápidas de la configuración activa por sistema
-CREATE INDEX IF NOT EXISTS idx_configuracion_pesos_sistema_activo ON configuracion_pesos (sistema_origen_id, activo, vigente_desde DESC);
 
 CREATE TABLE IF NOT EXISTS cola_letras_muertas (
                                                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -228,8 +226,8 @@ CREATE INDEX IF NOT EXISTS idx_participantes_subasta_puntaje ON participantes_su
 CREATE INDEX IF NOT EXISTS idx_transacciones_estado ON transacciones (estado);
 CREATE INDEX IF NOT EXISTS idx_transacciones_subasta ON transacciones (subasta_id);
 CREATE INDEX IF NOT EXISTS idx_transacciones_cita ON transacciones (cita_id);
-CREATE INDEX IF NOT EXISTS idx_configuracion_pesos_activo ON configuracion_pesos (activo, vigente_desde DESC);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_configuracion_pesos_unico_activo ON configuracion_pesos (activo) WHERE activo = TRUE;
+CREATE INDEX IF NOT EXISTS idx_configuracion_pesos_sistema_activo ON configuracion_pesos (sistema_origen_id, activo, vigente_desde DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_configuracion_pesos_unico_activo ON configuracion_pesos (sistema_origen_id) WHERE activo = TRUE;
 CREATE INDEX IF NOT EXISTS idx_cola_letras_muertas_estado ON cola_letras_muertas (estado, creado_en DESC);
 CREATE INDEX IF NOT EXISTS idx_cola_letras_muertas_id_correlacion ON cola_letras_muertas (id_correlacion);
 

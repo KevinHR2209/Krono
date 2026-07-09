@@ -5,10 +5,11 @@ const configRoutes = require('./routes/config');
 
 const app = express();
 
-app.use(configRoutes);
+// 1. MIDDLEWARES GLOBALES
 app.use(cors());
 app.use(express.json());
 
+// 2. RUTAS DE SALUD (HEALTHCHECK)
 app.get('/health', (_req, res) => {
   return res.status(200).json({
     service: 'core',
@@ -16,8 +17,11 @@ app.get('/health', (_req, res) => {
   });
 });
 
+// 3. RUTAS DE LA APLICACIÓN
+app.use(configRoutes);
 app.use(webhookRouter);
 
+// 4. MANEJO DE RUTAS NO ENCONTRADAS (404)
 app.use((req, res) => {
   return res.status(404).json({
     error: 'Ruta no encontrada'

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-do
 import Simulator from './components/Simulator';
 import ConfirmationView from './components/ConfirmationView';
 import ClinicDashboard from './components/ClinicDashboard';
+import TenantManager from './components/TenantManager';
 
 function NavigationMenu() {
     const location = useLocation();
@@ -20,6 +21,12 @@ function NavigationMenu() {
                 className={`hover:text-blue-600 transition-colors ${location.pathname === '/clinica' ? 'text-blue-600 font-bold' : 'text-slate-500'}`}
             >
                 [02] Sistema_Clinica
+            </Link>
+            <Link
+                to="/configuracion"
+                className={`hover:text-amber-600 transition-colors ${location.pathname === '/configuracion' ? 'text-amber-600 font-bold' : 'text-slate-500'}`}
+            >
+                [03] Gestión_SaaS
             </Link>
         </nav>
     );
@@ -47,6 +54,7 @@ export default function App() {
                         } />
                         <Route path="/clinica" element={<div className="py-4"><ClinicDashboard /></div>} />
                         <Route path="/confirmar" element={<ConfirmationView />} />
+                        <Route path="/configuracion" element={<div className="py-4"><TenantManager /></div>} />
                     </Routes>
                 </div>
             </div>

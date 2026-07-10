@@ -9,6 +9,12 @@ const DEFAULT_WEIGHTS = {
   w2: parseWeight(process.env.W2, 0.4)
 };
 
+// Alias explícito de DEFAULT_WEIGHTS. auctionService.js y enrichCandidates()
+// referencian FALLBACK_WEIGHTS como los pesos "de emergencia" cuando no hay
+// configuracion_pesos activa en BD; antes este identificador no existía y
+// producía un ReferenceError en tiempo de ejecución.
+const FALLBACK_WEIGHTS = DEFAULT_WEIGHTS;
+
 // Implementación de la fórmula de Haversine
 function haversineDistance(lat1, lon1, lat2, lon2) {
   if (!lat1 || !lon1 || !lat2 || !lon2) return 15; // Penalización máxima si faltan datos
@@ -74,6 +80,7 @@ function selectTopCandidates(waitlist, shopLat, shopLon, limit = 5, customWeight
 
 module.exports = {
   DEFAULT_WEIGHTS,
+  FALLBACK_WEIGHTS,
   haversineDistance,
   enrichCandidates,
   rankCandidates,

@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "jest --runInBand --forceExit",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --max-warnings=999"
   },
   "keywords": [
     "krono",
@@ -32,7 +33,9 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "dotenv": "^17.4.2",
+    "eslint": "^10.7.0",
     "jest": "^30.4.2",
     "nodemon": "^3.1.4"
   }

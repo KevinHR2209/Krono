@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const webhookRouter = require('./routes/webhook');
 const configRoutes = require('./routes/config');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.get('/health', (_req, res) => {
 // 3. RUTAS DE LA APLICACIÓN
 app.use(configRoutes);
 app.use(webhookRouter);
+app.use(analyticsRoutes);
 
 // 4. MANEJO DE RUTAS NO ENCONTRADAS (404)
 app.use((req, res) => {

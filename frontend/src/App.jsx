@@ -1,33 +1,54 @@
+import React from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import Simulator from './components/Simulator';
-import ConfirmationView from './components/ConfirmationView';
-import ClinicDashboard from './components/ClinicDashboard';
+import Dashboard from './components/Dashboard';
 import TenantManager from './components/TenantManager';
+import ConfirmationView from './components/ConfirmationView';
+import './App.css';
 
-function NavigationMenu() {
+function Navbar() {
     const location = useLocation();
-    if (location.pathname === '/confirmar') return null;
+
+    // No mostrar la navegación en la interfaz móvil del paciente
+    if (location.pathname.startsWith('/confirmar')) return null;
 
     return (
-        <nav className="flex gap-6 p-4 mt-8 mb-8 bg-white rounded-xl border border-slate-200 text-sm font-medium tracking-wide justify-center shadow-sm">
-            <Link
-                to="/"
-                className={`hover:text-emerald-600 transition-colors ${location.pathname === '/' ? 'text-emerald-600 font-bold' : 'text-slate-500'}`}
-            >
-                [01] Admin_Krono
-            </Link>
-            <Link
-                to="/clinica"
-                className={`hover:text-blue-600 transition-colors ${location.pathname === '/clinica' ? 'text-blue-600 font-bold' : 'text-slate-500'}`}
-            >
-                [02] Sistema_Clinica
-            </Link>
-            <Link
-                to="/configuracion"
-                className={`hover:text-amber-600 transition-colors ${location.pathname === '/configuracion' ? 'text-amber-600 font-bold' : 'text-slate-500'}`}
-            >
-                [03] Gestión_SaaS
-            </Link>
+        <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-sm font-sans">
+            <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+                {/* Isotipo y Título de la Plataforma */}
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-gradient-to-tr from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-sm border border-slate-600">
+                        K
+                    </div>
+                    <div>
+                        <span className="text-white font-extrabold text-base tracking-tight block">Krono Control</span>
+                        <span className="text-slate-400 font-mono text-[10px] uppercase tracking-wider block -mt-1">Orquestador SaaS</span>
+                    </div>
+                </div>
+
+                {/* Links de Navegación con Estilo Unificado */}
+                <div className="flex items-center gap-2 h-full">
+                    <Link
+                        to="/"
+                        className={`px-4 h-10 flex items-center rounded-lg text-sm font-semibold transition-all ${
+                            location.pathname === '/'
+                                ? 'bg-slate-800 text-white shadow-sm'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                        }`}
+                    >
+                        Observabilidad Global
+                    </Link>
+                    <Link
+                        to="/configuracion"
+                        className={`px-4 h-10 flex items-center rounded-lg text-sm font-semibold transition-all ${
+                            location.pathname === '/configuracion'
+                                ? 'bg-slate-800 text-white shadow-sm'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                        }`}
+                    >
+                        Gestión Tenants SaaS
+                    </Link>
+                </div>
+            </div>
         </nav>
     );
 }
@@ -35,28 +56,15 @@ function NavigationMenu() {
 export default function App() {
     return (
         <BrowserRouter>
-            <div className="min-h-screen bg-slate-50 flex justify-center items-start font-sans text-slate-800">
-                <div className="w-full max-w-4xl px-4">
-                    <NavigationMenu />
+            <div className="min-h-screen bg-slate-50 flex flex-col antialiased selection:bg-slate-800 selection:text-white">
+                <Navbar />
+                <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8">
                     <Routes>
-                        <Route path="/" element={
-                            <div className="py-4">
-                                <header className="mb-8 border-b border-slate-200 pb-4">
-                                    <h1 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                                        Krono
-                                        <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 text-xs font-semibold px-2 py-0.5 rounded-md align-middle">
-                        ADMIN
-                      </span>
-                                    </h1>
-                                </header>
-                                <Simulator />
-                            </div>
-                        } />
-                        <Route path="/clinica" element={<div className="py-4"><ClinicDashboard /></div>} />
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/configuracion" element={<TenantManager />} />
                         <Route path="/confirmar" element={<ConfirmationView />} />
-                        <Route path="/configuracion" element={<div className="py-4"><TenantManager /></div>} />
                     </Routes>
-                </div>
+                </main>
             </div>
         </BrowserRouter>
     );

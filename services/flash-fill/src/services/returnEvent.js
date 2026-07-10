@@ -8,30 +8,34 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function saveToDeadLetterQueue({ referenceId, payload, errorDetail }) {
+async function saveToDeadLetterQueue({ transactionId, correlationId, url, payload, errorDetail }) {
   await query(
-    `
-      INSERT INTO cola_letras_muertas (
-        tipo_evento,
-        id_referencia,
-        payload,
-        error_detalle,
-        cantidad_intentos,
-        ultimo_intento_en
-      )
-      VALUES ($1, $2, $3::jsonb, $4, $5, NOW())
-    `,
-    [
-      'return_webhook_failed',
-      String(referenceId),
-      JSON.stringify(payload),
-      errorDetail,
-      3
-    ]
+      `
+        INSERT INTO cola_letras_muertas (
+          id_transaccion,
+          id_correlacion,
+          tipo_evento,
+          url_destino,
+          payload,
+          mensaje_error,
+          intentos,
+          ultimo_intento_en
+        )
+        VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, NOW())
+      `,
+      [
+        transactionId,
+        correlationId,
+        'return_webhook_failed',
+        url,
+        JSON.stringify(payload),
+        errorDetail,
+        BACKOFF_SCHEDULE_MS.length
+      ]
   );
 }
 
-async function sendReturnEventWithRetry({ url, payload, referenceId }) {
+async function sendReturnEventWithRetry({ url, payload, transactionId, correlationId }) {
   if (!url) {
     throw new Error('La subasta no tiene url_retorno configurada');
   }
@@ -56,20 +60,26 @@ async function sendReturnEventWithRetry({ url, payload, referenceId }) {
       const shouldWait = attempt < BACKOFF_SCHEDULE_MS.length - 1;
 
       if (shouldWait) {
+        console.warn(`[Flash-Fill] Intento ${attempt + 1} fallido hacia ${url}. Reintentando en ${BACKOFF_SCHEDULE_MS[attempt]}ms...`);
         await sleep(BACKOFF_SCHEDULE_MS[attempt]);
       }
     }
   }
 
+  // Si llegamos aquí, se agotaron los reintentos. Se va a la DLQ.
+  console.error(`[Flash-Fill] Webhook falló tras ${BACKOFF_SCHEDULE_MS.length} intentos. Enviando a DLQ...`);
+
   await saveToDeadLetterQueue({
-    referenceId,
+    transactionId,
+    correlationId,
+    url,
     payload,
     errorDetail: lastError ? lastError.message : 'Error desconocido en return webhook'
   });
 
   return {
     success: false,
-    attempts: 3,
+    attempts: BACKOFF_SCHEDULE_MS.length,
     error: lastError ? lastError.message : 'Error desconocido en return webhook'
   };
 }

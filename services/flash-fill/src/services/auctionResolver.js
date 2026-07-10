@@ -152,9 +152,10 @@ async function resolveAuctionWinner({ auctionId, patientId, appointmentId }) {
     if (transaction.url_webhook_respuesta) {
       try {
         const returnResult = await sendReturnEventWithRetry({
-          url: transaction.url_webhook_respuesta, // ¡Aquí conectamos el puente!
+          url: transaction.url_webhook_respuesta,
           payload: responsePayload,
-          referenceId: transaction.id_transaccion
+          transactionId: transaction.id_transaccion,
+          correlationId: transaction.id_correlacion
         });
 
         if (returnResult.success) {

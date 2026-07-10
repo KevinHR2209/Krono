@@ -114,13 +114,12 @@ CREATE TABLE IF NOT EXISTS candidatos_lista_espera (
     identificador_paciente VARCHAR(100) NOT NULL,
     nombre_visible VARCHAR(150) NOT NULL,
     telefono VARCHAR(20) NOT NULL,
-    historial_asistencia NUMERIC(4,3) NOT NULL,
+    metricas JSONB NOT NULL DEFAULT '{}'::jsonb,
     latitud NUMERIC(10,7),
     longitud NUMERIC(10,7),
     creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_candidatos_lista_espera_cita_paciente UNIQUE (cita_id, identificador_paciente),
-    CONSTRAINT chk_candidatos_lista_espera_telefono CHECK (telefono ~ '^\+569[0-9]{8}$'),
-    CONSTRAINT chk_candidatos_lista_espera_historial CHECK (historial_asistencia >= 0.0 AND historial_asistencia <= 1.0)
+    CONSTRAINT chk_candidatos_lista_espera_telefono CHECK (telefono ~ '^\+569[0-9]{8}$')
     );
 
 CREATE TABLE IF NOT EXISTS participantes_subasta (
@@ -130,11 +129,10 @@ CREATE TABLE IF NOT EXISTS participantes_subasta (
     identificador_paciente VARCHAR(100) NOT NULL,
     nombre_visible VARCHAR(150) NOT NULL,
     telefono VARCHAR(20) NOT NULL,
-    historial_asistencia NUMERIC(4,3) NOT NULL,
+    metricas JSONB NOT NULL DEFAULT '{}'::jsonb,
     latitud NUMERIC(10,7),
     longitud NUMERIC(10,7),
     distancia_km NUMERIC(8,2),
-    historial_asistencia_normalizado NUMERIC(6,5) NOT NULL,
     distancia_normalizada NUMERIC(6,5) NOT NULL,
     puntaje_prioridad NUMERIC(8,5) NOT NULL,
     posicion_ranking INTEGER NOT NULL,
@@ -147,10 +145,8 @@ CREATE TABLE IF NOT EXISTS participantes_subasta (
     CONSTRAINT uq_participantes_subasta_candidato UNIQUE (subasta_id, candidato_lista_espera_id),
     CONSTRAINT uq_participantes_subasta_ranking UNIQUE (subasta_id, posicion_ranking),
     CONSTRAINT chk_participantes_subasta_telefono CHECK (telefono ~ '^\+569[0-9]{8}$'),
-    CONSTRAINT chk_participantes_subasta_historial CHECK (historial_asistencia >= 0.0 AND historial_asistencia <= 1.0),
     CONSTRAINT chk_participantes_subasta_posicion CHECK (posicion_ranking > 0),
     CONSTRAINT chk_participantes_subasta_puntaje CHECK (puntaje_prioridad >= 0.0),
-    CONSTRAINT chk_participantes_subasta_historial_normalizado CHECK (historial_asistencia_normalizado >= 0.0 AND historial_asistencia_normalizado <= 1.0),
     CONSTRAINT chk_participantes_subasta_distancia_normalizada CHECK (distancia_normalizada >= 0.0 AND distancia_normalizada <= 1.0)
     );
 
@@ -179,6 +175,8 @@ CREATE TABLE IF NOT EXISTS configuracion_pesos (
                                                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sistema_origen_id UUID NOT NULL REFERENCES sistemas_origen(id) ON DELETE CASCADE,
     pesos JSONB NOT NULL,
+    tiempo_expiracion_segundos INTEGER NOT NULL DEFAULT 120,
+    cantidad_notificar INTEGER NOT NULL DEFAULT 5,
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     vigente_desde TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     creado_por VARCHAR(100) NOT NULL DEFAULT 'system',

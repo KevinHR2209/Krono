@@ -48,6 +48,8 @@ INSERT INTO configuracion_pesos (
     id,
     sistema_origen_id,
     pesos,
+    tiempo_expiracion_segundos,
+    cantidad_notificar,
     activo,
     creado_por
 ) VALUES
@@ -55,6 +57,8 @@ INSERT INTO configuracion_pesos (
           '44444444-4444-4444-4444-444444444441',
           '11111111-1111-1111-1111-111111111111',
           '{"asistencia": 0.60, "distancia": 0.40}'::jsonb,
+          120,
+          5,
           TRUE,
           'seed'
       ),
@@ -62,6 +66,8 @@ INSERT INTO configuracion_pesos (
           '44444444-4444-4444-4444-444444444442',
           '22222222-2222-2222-2222-222222222222',
           '{"fiabilidad": 0.50, "nivel_jugador": 0.30, "distancia": 0.20}'::jsonb,
+          120,
+          5,
           TRUE,
           'seed'
       ),
@@ -69,6 +75,8 @@ INSERT INTO configuracion_pesos (
           '44444444-4444-4444-4444-444444444443',
           '33333333-3333-3333-3333-333333333333',
           '{"tamaño_grupo": 0.50, "fidelidad": 0.30, "distancia": 0.20}'::jsonb,
+          120,
+          5,
           TRUE,
           'seed'
       )
@@ -129,7 +137,7 @@ INSERT INTO candidatos_lista_espera (
     identificador_paciente,
     nombre_visible,
     telefono,
-    historial_asistencia
+    metricas
 ) VALUES
       (
           '60000000-0000-0000-0000-000000000001',
@@ -137,7 +145,7 @@ INSERT INTO candidatos_lista_espera (
           'PAT-0204',
           'Ana Flores',
           '+56912345678',
-          0.950
+          '{"asistencia": 0.950}'::jsonb
       ),
       (
           '60000000-0000-0000-0000-000000000002',
@@ -145,7 +153,7 @@ INSERT INTO candidatos_lista_espera (
           'PAT-0311',
           'Jorge Ramírez',
           '+56912345679',
-          0.870
+          '{"asistencia": 0.870}'::jsonb
       ),
       (
           '60000000-0000-0000-0000-000000000003',
@@ -153,7 +161,7 @@ INSERT INTO candidatos_lista_espera (
           'PAT-0148',
           'Camila Soto',
           '+56912345680',
-          0.990
+          '{"asistencia": 0.990}'::jsonb
       ),
       (
           '60000000-0000-0000-0000-000000000004',
@@ -161,7 +169,7 @@ INSERT INTO candidatos_lista_espera (
           'PAT-0187',
           'Matías Pérez',
           '+56912345681',
-          0.760
+          '{"asistencia": 0.760}'::jsonb
       ),
       (
           '60000000-0000-0000-0000-000000000005',
@@ -169,7 +177,7 @@ INSERT INTO candidatos_lista_espera (
           'PAT-0222',
           'Fernanda Muñoz',
           '+56912345682',
-          0.920
+          '{"asistencia": 0.920}'::jsonb
       )
     ON CONFLICT (cita_id, identificador_paciente) DO NOTHING;
 

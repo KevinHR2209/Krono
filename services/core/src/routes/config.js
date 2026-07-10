@@ -8,16 +8,18 @@ router.get('/api/v1/configuracion/:sistemaId', async (req, res) => {
     try {
         const { sistemaId } = req.params;
         const result = await client.query(
-            `SELECT pesos FROM configuracion_pesos
-       WHERE sistema_origen_id = $1 AND activo = TRUE
-       ORDER BY vigente_desde DESC LIMIT 1`,
+            `SELECT pesos, tiempo_expiracion_segundos, cantidad_notificar
+             FROM configuracion_pesos
+             WHERE sistema_origen_id = $1 AND activo = TRUE
+             ORDER BY vigente_desde DESC LIMIT 1`,
             [sistemaId]
         );
 
         if (result.rows.length > 0) {
-            res.json(result.rows[0].pesos);
+            res.json(result.rows[0]);
         } else {
-            res.json({}); // Retorna vacío si no tiene configuración
+            // Valores por defecto seguros si no tiene configuración guardada
+            res.json({ pesos: {}, tiempo_expiracion_segundos: 120, cantidad_notificar: 5 });
         }
     } catch (error) {
         console.error('[core] Error obteniendo configuración:', error);
@@ -27,12 +29,12 @@ router.get('/api/v1/configuracion/:sistemaId', async (req, res) => {
     }
 });
 
-// 2. Guardar una nueva configuración (JSON)
+// 2. Guardar una nueva configuración (JSON y Variables)
 router.post('/api/v1/configuracion/:sistemaId', async (req, res) => {
     const client = await getClient();
     try {
         const { sistemaId } = req.params;
-        const pesos = req.body; // El frontend nos enviará el JSON directamente
+        const { pesos, tiempo_expiracion_segundos, cantidad_notificar } = req.body;
 
         await client.query('BEGIN');
 
@@ -42,11 +44,11 @@ router.post('/api/v1/configuracion/:sistemaId', async (req, res) => {
             [sistemaId]
         );
 
-        // Insertamos la nueva configuración
+        // Insertamos la nueva configuración completa
         await client.query(
-            `INSERT INTO configuracion_pesos (sistema_origen_id, pesos, activo, creado_por)
-       VALUES ($1, $2::jsonb, TRUE, 'admin_panel')`,
-            [sistemaId, JSON.stringify(pesos)]
+            `INSERT INTO configuracion_pesos (sistema_origen_id, pesos, tiempo_expiracion_segundos, cantidad_notificar, activo, creado_por)
+             VALUES ($1, $2::jsonb, $3, $4, TRUE, 'admin_panel')`,
+            [sistemaId, JSON.stringify(pesos), tiempo_expiracion_segundos || 120, cantidad_notificar || 5]
         );
 
         await client.query('COMMIT');

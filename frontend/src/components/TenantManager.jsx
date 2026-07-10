@@ -8,7 +8,8 @@ const TENANTS = [
 
 export default function TenantManager() {
     const [activeTenant, setActiveTenant] = useState(TENANTS[0]);
-    const [config, setConfig] = useState({});
+    // Estado adaptado para manejar pesos y variables sueltas
+    const [config, setConfig] = useState({ pesos: {}, tiempo_expiracion_segundos: 120, cantidad_notificar: 5 });
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [notification, setNotification] = useState(null);
@@ -22,13 +23,16 @@ export default function TenantManager() {
         try {
             const res = await fetch(`http://localhost:3000/api/v1/configuracion/${tenantId}`);
 
-            // Validación estricta: Si el backend devuelve un error 500, lanzamos una excepción
             if (!res.ok) {
                 throw new Error(`Error HTTP del servidor: ${res.status}`);
             }
 
             const data = await res.json();
-            setConfig(data || {});
+            setConfig({
+                pesos: data.pesos || {},
+                tiempo_expiracion_segundos: data.tiempo_expiracion_segundos || 120,
+                cantidad_notificar: data.cantidad_notificar || 5
+            });
         } catch (error) {
             console.error('[Frontend] Error obteniendo configuración:', error);
             setNotification({ type: 'error', text: 'Fallo de conexión. Revisa la consola para más detalles.' });
@@ -38,20 +42,23 @@ export default function TenantManager() {
     };
 
     const handleWeightChange = (key, value) => {
-        setConfig(prev => ({ ...prev, [key]: parseFloat(value) }));
+        setConfig(prev => ({
+            ...prev,
+            pesos: { ...prev.pesos, [key]: parseFloat(value) }
+        }));
     };
 
     const handleAddParameter = () => {
         const paramName = prompt('Nombre del nuevo parámetro (ej. nivel_urgencia):');
         if (paramName && paramName.trim() !== '') {
             const formattedName = paramName.trim().toLowerCase().replace(/\s+/g, '_');
-            setConfig(prev => ({ ...prev, [formattedName]: 0.10 }));
+            setConfig(prev => ({ ...prev, pesos: { ...prev.pesos, [formattedName]: 0.10 } }));
         }
     };
 
     const handleRemoveParameter = (keyToRemove) => {
         const newConfig = { ...config };
-        delete newConfig[keyToRemove];
+        delete newConfig.pesos[keyToRemove];
         setConfig(newConfig);
     };
 
@@ -68,7 +75,7 @@ export default function TenantManager() {
                 throw new Error(`Error HTTP al guardar: ${res.status}`);
             }
 
-            setNotification({ type: 'success', text: 'Parámetros guardados y activos en producción.' });
+            setNotification({ type: 'success', text: 'Parámetros y Tiempos guardados exitosamente.' });
             setTimeout(() => setNotification(null), 4000);
         } catch (error) {
             console.error('[Frontend] Error guardando configuración:', error);
@@ -78,11 +85,11 @@ export default function TenantManager() {
         }
     };
 
-    const totalWeight = Object.values(config).reduce((acc, val) => acc + val, 0);
+    const totalWeight = Object.values(config.pesos).reduce((acc, val) => acc + val, 0);
     const isTotalValid = Math.abs(totalWeight - 1.0) < 0.01;
 
     return (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm mt-8 font-sans overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm mt-8 font-sans overflow-hidden max-w-4xl mx-auto">
             <div className="flex border-b border-slate-200 bg-slate-50">
                 {TENANTS.map((tenant) => (
                     <button
@@ -100,11 +107,42 @@ export default function TenantManager() {
             </div>
 
             <div className="p-8">
-                <div className="flex justify-between items-start mb-8">
+                <div className="mb-8 border-b border-slate-200 pb-8">
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-800">Reglas de Operación</h2>
+                    <p className="text-slate-500 mt-1 mb-6">Ajusta los límites y tiempos para {activeTenant.name}.</p>
+
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 shadow-inner">
+                            <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Tiempo de Expiración (Segundos)</label>
+                            <input
+                                type="number"
+                                min="30"
+                                value={config.tiempo_expiracion_segundos}
+                                onChange={(e) => setConfig({...config, tiempo_expiracion_segundos: parseInt(e.target.value) || 0})}
+                                className="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 text-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800"
+                            />
+                            <p className="text-xs text-slate-400 mt-2">Tiempo dado al paciente para aceptar.</p>
+                        </div>
+                        <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 shadow-inner">
+                            <label className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 block">Candidatos a Notificar</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="20"
+                                value={config.cantidad_notificar}
+                                onChange={(e) => setConfig({...config, cantidad_notificar: parseInt(e.target.value) || 0})}
+                                className="w-full bg-white border border-slate-300 rounded-lg px-4 py-3 text-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800"
+                            />
+                            <p className="text-xs text-slate-400 mt-2">¿A cuántas personas disparamos la alerta?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex justify-between items-start mb-6">
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight text-slate-800">Motor de Ponderación</h2>
                         <p className="text-slate-500 mt-1">
-                            Ajusta los parámetros JSON dinámicos que el algoritmo usará para {activeTenant.name}.
+                            Ajusta el JSON dinámico de prioridades.
                         </p>
                     </div>
                     <div className={`px-4 py-2 rounded-xl border flex flex-col items-center min-w-[120px] ${isTotalValid ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
@@ -120,7 +158,7 @@ export default function TenantManager() {
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {Object.entries(config).map(([parametro, peso]) => (
+                        {Object.entries(config.pesos).map(([parametro, peso]) => (
                             <div key={parametro} className="bg-slate-50 p-5 rounded-xl border border-slate-100 flex flex-col gap-3 group relative">
                                 <div className="flex justify-between items-center">
                                     <span className="font-mono text-sm font-semibold text-slate-700 bg-white px-3 py-1 rounded-md border border-slate-200 shadow-sm">
@@ -163,7 +201,7 @@ export default function TenantManager() {
                         disabled={saving || !isTotalValid}
                         className="w-full bg-slate-800 text-white py-4 px-4 rounded-xl hover:bg-slate-900 disabled:bg-slate-300 disabled:text-slate-500 transition-all font-semibold tracking-wide text-lg shadow-md disabled:shadow-none"
                     >
-                        {saving ? "Guardando..." : "Sincronizar con el Motor Krono"}
+                        {saving ? "Guardando..." : "Sincronizar Panel Completo"}
                     </button>
                     {!isTotalValid && (
                         <p className="text-center text-red-500 mt-3 text-sm font-medium">

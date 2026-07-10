@@ -40,6 +40,16 @@ INSERT INTO sistemas_origen (
           'reservas@cafeespecialidad.cl',
           'https://cliente-demo.cl/api/krono/result-restaurant',
           TRUE
+      ),
+      (
+          '55555555-1111-1111-1111-555555555555',
+          'CLINICA-PROVIDENCIA-01',
+          'Clínica Médica Providencia',
+          'salud',
+          'dev-hash-clinica-providencia',
+          'sistemas@clinicaprovidencia.cl',
+          'http://host.docker.internal:8001/api/webhook/krono',
+          TRUE
       )
     ON CONFLICT (identificador_sistema_origen) DO NOTHING;
 
@@ -66,7 +76,7 @@ INSERT INTO configuracion_pesos (
           '44444444-4444-4444-4444-444444444442',
           '22222222-2222-2222-2222-222222222222',
           '{"fiabilidad": 0.50, "nivel_jugador": 0.30, "distancia": 0.20}'::jsonb,
-          120,
+          300,
           5,
           TRUE,
           'seed'
@@ -75,8 +85,17 @@ INSERT INTO configuracion_pesos (
           '44444444-4444-4444-4444-444444444443',
           '33333333-3333-3333-3333-333333333333',
           '{"tamaño_grupo": 0.50, "fidelidad": 0.30, "distancia": 0.20}'::jsonb,
-          120,
-          5,
+          180,
+          6,
+          TRUE,
+          'seed'
+      ),
+      (
+          '44444444-4444-4444-4444-444444444444',
+          '55555555-1111-1111-1111-555555555555',
+          '{"nivel_urgencia": 0.50, "dias_espera": 0.30, "asistencia": 0.20}'::jsonb,
+          300,
+          3,
           TRUE,
           'seed'
       )

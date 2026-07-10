@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 const TENANTS = [
     { id: '11111111-1111-1111-1111-111111111111', name: 'Barbería Krono', icon: '✂️', color: 'text-blue-600', bg: 'bg-blue-50' },
     { id: '22222222-2222-2222-2222-222222222222', name: 'SportCenter Viña', icon: '⚽', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { id: '33333333-3333-3333-3333-333333333333', name: 'Cafetería Especialidad', icon: '☕', color: 'text-amber-600', bg: 'bg-amber-50' }
+    { id: '33333333-3333-3333-3333-333333333333', name: 'Cafetería Especialidad', icon: '☕', color: 'text-amber-600', bg: 'bg-amber-50' },
+    { id: '55555555-1111-1111-1111-555555555555', name: 'Clínica Providencia', icon: '🏥', color: 'text-rose-600', bg: 'bg-rose-50' }
 ];
 
 export default function TenantManager() {

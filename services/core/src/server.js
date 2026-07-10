@@ -1,12 +1,20 @@
-require('dotenv').config();
-
 const app = require('./app');
-require('./config/database');
-require('./config/redis');
-require('./config/queue');
+const { startExpirationWorker } = require('./workers/expirationWorker');
 
-const port = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
-app.listen(port, () => {
-  console.log(`[core] Servicio escuchando en http://localhost:${port}`);
+const server = app.listen(PORT, () => {
+  console.log(`[core] Servicio escuchando en http://localhost:${PORT}`);
+
+  // Encendemos el Worker de Expiración en segundo plano
+  startExpirationWorker();
+});
+
+// Manejo elegante de apagado (Graceful Shutdown)
+process.on('SIGTERM', () => {
+  console.log('[core] SIGTERM recibido, apagando servidor...');
+  server.close(() => {
+    console.log('[core] Servidor HTTP cerrado.');
+    process.exit(0);
+  });
 });

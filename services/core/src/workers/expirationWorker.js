@@ -95,4 +95,4 @@ function startExpirationWorker() {
     setInterval(processExpiredAuctions, 10000); // Revisa cada 10 segundos
 }
 
-module.exports = { startExpirationWorker };
+module.exports = { startExpirationWorker, processExpiredAuctions };
